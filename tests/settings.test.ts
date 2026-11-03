@@ -55,3 +55,41 @@ describe("앱 설정 파일 (app-settings.json)", () => {
     expect(s.terms).toEqual({ "넓적한 잎": { desc: "넓어요." } });
   });
 });
+
+describe("공공데이터포털 API 연결 정보 (dataApi)", () => {
+  const good = {
+    service: "산림청 국립수목원_식물자원 조회 서비스",
+    search: { url: "https://apis.data.go.kr/1400119/PlantResource/plantPilbkSearch", keywordParam: "reqSearchWrd", params: { pageNo: "1", numOfRows: "10", serviceKey: "몰래" } },
+    detail: { url: "https://apis.data.go.kr/1400119/PlantResource/plantPilbkInfo", idParam: "reqPlantPilbkNo" },
+  };
+  it("주소·변수가 맞으면 연결 정보가 된다 (serviceKey 는 설정 파일에 못 넣음)", async () => {
+    const { normalizeDataApi } = await import("@/lib/settings");
+    const d = normalizeDataApi(good)!;
+    expect(d.search.keywordParam).toBe("reqSearchWrd");
+    expect(d.search.params).toEqual({ pageNo: "1", numOfRows: "10" });
+    expect(d.fields.koreanName).toBe("plantGnrlNm"); // 항목 이름을 안 적으면 국립수목원 기본 이름
+  });
+  it("공공데이터포털 주소가 아니면 연결하지 않는다 (키가 다른 곳으로 새지 않게)", async () => {
+    const { normalizeDataApi } = await import("@/lib/settings");
+    expect(normalizeDataApi({ ...good, search: { ...good.search, url: "https://evil.example.com/x" } })).toBeNull();
+    expect(normalizeDataApi({ ...good, detail: { url: good.detail.url } })).toBeNull();
+    expect(normalizeDataApi(undefined)).toBeNull();
+  });
+  it("저장소 설정 파일에는 연결 정보가 들어 있다 (완성본)", () => {
+    expect(SETTINGS.dataApi?.search.url).toBe("https://apis.data.go.kr/1400119/PlantResource/plantPilbkSearch");
+  });
+  it("연결 정보가 없으면 '아직 연결 안 됨' 안내 (503)", async () => {
+    const m = await import("@/lib/server/datagokr");
+    const saved = SETTINGS.dataApi;
+    m.setDataApiForTest(null);
+    const prev = process.env.MOCK;
+    delete process.env.MOCK;
+    const e = await m.searchPlants("연결안됨테스트", "key").catch((x) => x);
+    expect(e.code).toBe("NOT_CONNECTED");
+    const res = m.dataErrorResponse(e);
+    expect(res.status).toBe(503);
+    expect((await res.json()).error).toBe("NOT_CONNECTED");
+    m.setDataApiForTest(saved);
+    if (prev !== undefined) process.env.MOCK = prev;
+  });
+});

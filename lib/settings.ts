@@ -12,6 +12,8 @@
  * - pages: 새 화면 { "이름": { title, intro, cards: [{ title, text, sub }], button: { label, href } } } → 주소 /p/이름
  * - terms: 그림 도움말 설명 바꾸기 { "넓적한 잎": { desc, examples } }
  * - curriculum: 성취기준 더하기·활동 바꾸기 (lib/curriculum.ts 의 mergeStandards 가 기본 자료와 합침)
+ * - dataApi: 공공데이터포털 API 연결 정보 (요청 주소·요청 변수·응답 항목 이름). 비어 있으면 '아직 연결 안 됨'
+ *   키는 여기에 쓰지 않는다 — 각자 앱 '설정' 화면에 넣는다
  *
  * 모양이 틀린 칸은 기본값으로 바꿔 앱이 멈추지 않게 한다. (JSON 문법이 틀리면 배포가 실패하고 앱은 직전 모습 그대로)
  */
@@ -21,6 +23,52 @@ export type MenuItem = { href: string; icon: string; label: string };
 export type PageCard = { title: string; text: string; sub: string };
 export type InfoPage = { title: string; intro: string; cards: PageCard[]; button: { label: string; href: string } | null };
 export type TermOverride = { desc?: string; examples?: string };
+/** 공공데이터포털 API 연결 정보 (활용가이드의 요청 주소·요청 변수·응답 항목) */
+export type DataApi = {
+  service: string;
+  search: { url: string; keywordParam: string; params: Record<string, string> };
+  detail: { url: string; idParam: string };
+  fields: { id: string; koreanName: string; scientificName: string; family: string; familyScientific: string; genus: string; englishName: string };
+};
+
+/** 키(serviceKey)가 다른 곳으로 새 나가지 않게, 공공데이터포털 주소만 받는다 */
+export const DATA_API_PREFIX = "https://apis.data.go.kr/";
+const PARAM = /^[A-Za-z][A-Za-z0-9_]{0,40}$/;
+const DEFAULT_FIELDS: DataApi["fields"] = {
+  id: "plantPilbkNo",
+  koreanName: "plantGnrlNm",
+  scientificName: "plantSpecsScnm",
+  family: "familyKorNm",
+  familyScientific: "familyNm",
+  genus: "genusKorNm",
+  englishName: "engNm",
+};
+
+export function normalizeDataApi(input: unknown): DataApi | null {
+  const d = obj(input);
+  const s = obj(d.search);
+  const t = obj(d.detail);
+  const url = (v: unknown) => {
+    const u = text(v);
+    return u.startsWith(DATA_API_PREFIX) && !/[\s?#]/.test(u) ? u : "";
+  };
+  const searchUrl = url(s.url);
+  const detailUrl = url(t.url);
+  const keywordParam = text(s.keywordParam);
+  const idParam = text(t.idParam);
+  if (!searchUrl || !detailUrl || !PARAM.test(keywordParam) || !PARAM.test(idParam)) return null;
+  const params: Record<string, string> = {};
+  for (const [k, v] of Object.entries(obj(s.params))) {
+    if (PARAM.test(k) && k.toLowerCase() !== "servicekey" && (typeof v === "string" || typeof v === "number")) params[k] = String(v);
+  }
+  const f = obj(d.fields);
+  const fields = { ...DEFAULT_FIELDS };
+  for (const k of Object.keys(DEFAULT_FIELDS) as (keyof DataApi["fields"])[]) {
+    if (PARAM.test(text(f[k]))) fields[k] = text(f[k]);
+  }
+  return { service: text(d.service, "공공데이터포털 API"), search: { url: searchUrl, keywordParam, params }, detail: { url: detailUrl, idParam }, fields };
+}
+
 export type Settings = {
   app: { name: string; shortName: string; tagline: string; emoji: string };
   defaultGrade: "1-2" | "3-4" | "5-6";
@@ -30,6 +78,7 @@ export type Settings = {
   pages: Record<string, InfoPage>;
   terms: Record<string, TermOverride>;
   curriculum: unknown[];
+  dataApi: DataApi | null;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -46,6 +95,7 @@ export const DEFAULT_SETTINGS: Settings = {
   pages: {},
   terms: {},
   curriculum: [],
+  dataApi: null,
 };
 
 const obj = (v: unknown): Record<string, unknown> => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
@@ -114,6 +164,7 @@ export function normalizeSettings(input: unknown): Settings {
     pages,
     terms,
     curriculum: list(s.curriculum),
+    dataApi: normalizeDataApi(s.dataApi),
   };
 }
 

@@ -12,11 +12,15 @@ type Repo = { owner: string; slug: string; ref: string; sha: string; message: st
  */
 export default function EditAppCard() {
   const [repo, setRepo] = useState<Repo | null | undefined>(undefined);
+  const [api, setApi] = useState<{ connected: boolean; service: string } | null>(null);
 
   useEffect(() => {
     fetch("/api/config", { cache: "no-store" })
       .then((r) => r.json())
-      .then((j) => setRepo(j.repo ?? null))
+      .then((j) => {
+        setRepo(j.repo ?? null);
+        setApi(j.dataApi ?? null);
+      })
       .catch(() => setRepo(null));
   }, []);
 
@@ -50,6 +54,12 @@ export default function EditAppCard() {
         <p className="muted small">이 앱이 어느 GitHub 저장소에서 만들어졌는지 알 수 없어요(내 컴퓨터에서 실행 중이거나 Vercel 이 아닌 곳). 저장소의 <code className="inline">app-settings.json</code> 을 직접 열어 고쳐요.</p>
       ) : (
         <p className="muted small">저장소 정보를 불러오는 중…</p>
+      )}
+      {api && (
+        <div className={`app-version small ${api.connected ? "" : "warn-box"}`}>
+          <strong>공공데이터포털 API</strong>{" "}
+          {api.connected ? `✅ 연결됨 — ${api.service}` : "⏳ 아직 연결 안 됨 — 실습 프롬프트로 app-settings.json 의 dataApi 를 채우면 연결돼요"}
+        </div>
       )}
       <p className="muted small" style={{ marginBottom: 0 }}>
         붙여 넣은 내용이 틀려서 배포가 실패해도 앱은 직전 모습 그대로 열려요. 그럴 땐 클로드에게 &lsquo;JSON 이 맞는지 확인하고 파일 전체를 다시 줘&rsquo;라고 해요.

@@ -81,5 +81,29 @@
       },
       "priority": 5
     }
-  ]
+  ],
+  "dataApi": {
+    "service": "산림청 국립수목원_식물자원 조회 서비스",
+    "search": {
+      "url": "https://apis.data.go.kr/1400119/PlantResource/plantPilbkSearch",
+      "keywordParam": "reqSearchWrd",
+      "params": {
+        "pageNo": "1",
+        "numOfRows": "10"
+      }
+    },
+    "detail": {
+      "url": "https://apis.data.go.kr/1400119/PlantResource/plantPilbkInfo",
+      "idParam": "reqPlantPilbkNo"
+    },
+    "fields": {
+      "id": "plantPilbkNo",
+      "koreanName": "plantGnrlNm",
+      "scientificName": "plantSpecsScnm",
+      "family": "familyKorNm",
+      "familyScientific": "familyNm",
+      "genus": "genusKorNm",
+      "englishName": "engNm"
+    }
+  }
 }

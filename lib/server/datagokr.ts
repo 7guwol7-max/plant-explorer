@@ -1,8 +1,9 @@
 /**
  * 산림청 국립수목원_식물자원 조회 서비스 (공공데이터포털)
- * 기본 주소: https://apis.data.go.kr/1400119/PlantResource
- *   GET /plantPilbkSearch  식물도감 목록 검색  (serviceKey, pageNo, numOfRows, reqSearchWrd)
- *   GET /plantPilbkInfo    식물도감 상세정보 조회 (serviceKey, reqPlantPilbkNo)
+ * 어느 주소를 어떤 요청 변수로 부를지는 app-settings.json 의 dataApi 에 적는다 (연수: 프롬프트로 연결하기)
+ *   목록 검색: https://apis.data.go.kr/1400119/PlantResource/plantPilbkSearch  (serviceKey, pageNo, numOfRows, reqSearchWrd)
+ *   상세 정보: https://apis.data.go.kr/1400119/PlantResource/plantPilbkInfo    (serviceKey, reqPlantPilbkNo)
+ * dataApi 가 비어 있으면 NOT_CONNECTED 오류로 '아직 연결 안 됨'을 알린다. 연습 모드(MOCK=1)는 samples/ 를 쓴다.
  * 응답은 XML 전용 → 여기서 JSON으로 변환한다.
  * 응답 구조: response > header(resultCode, resultMsg) > body > items > item[]  (상세는 body > item)
  */
@@ -11,8 +12,17 @@ import fs from "node:fs";
 import path from "node:path";
 import { isMock } from "./keys";
 import { SOURCE_NAME } from "../fields";
+import { SETTINGS, type DataApi } from "../settings";
 
-const BASE = "https://apis.data.go.kr/1400119/PlantResource";
+/** 연결 정보 (테스트에서 바꿔 끼울 수 있게 함수로) */
+let dataApi: DataApi | null = SETTINGS.dataApi;
+export function setDataApiForTest(d: DataApi | null) {
+  dataApi = d;
+}
+function requireDataApi(): DataApi {
+  if (!dataApi) throw new DataGoKrError("NOT_CONNECTED", DATA_CODE_MSG.NOT_CONNECTED);
+  return dataApi;
+}
 const parser = new XMLParser({ ignoreAttributes: true, parseTagValue: false, trimValues: true });
 
 export class DataGoKrError extends Error {
@@ -39,6 +49,7 @@ export const DATA_CODE_MSG: Record<string, string> = {
   "05": "국립수목원 서버가 응답하지 않아요. 잠시 후 다시 시도하세요.",
   NETWORK: "국립수목원 서버에 연결하지 못했어요. 인터넷 연결을 확인하세요.",
   PARSE: "국립수목원 응답을 해석하지 못했어요. 잠시 후 다시 시도하세요.",
+  NOT_CONNECTED: "국립수목원 API가 아직 이 앱에 연결되지 않았어요. 선생님 모드의 '✏️ 프롬프트로 앱 고치기'에서 app-settings.json 의 dataApi(요청 주소·요청 변수)를 채우면 연결돼요.",
 };
 
 /** 사용자가 키 설정을 고쳐야 해결되는 오류 */
@@ -89,8 +100,8 @@ export function parseXml(text: string): Parsed {
   return { code, body: doc.response.body ?? {} };
 }
 
-async function callXml(op: string, params: Record<string, string>, key: string): Promise<Parsed> {
-  const url = new URL(`${BASE}/${op}`);
+async function callXml(endpoint: string, params: Record<string, string>, key: string): Promise<Parsed> {
+  const url = new URL(endpoint);
   // 디코딩 키를 넣고 여기서 한 번만 인코딩한다 (이중 인코딩 방지)
   url.search = new URLSearchParams({ serviceKey: key, ...params }).toString();
 
@@ -154,15 +165,20 @@ export type PlantDetail = PlantSummary & {
 
 export const SOURCE = SOURCE_NAME;
 
+/** 응답 항목 이름 — 연결 정보(dataApi.fields)에 적은 이름, 없으면 국립수목원 기본 이름 */
+const F = () =>
+  dataApi?.fields ?? { id: "plantPilbkNo", koreanName: "plantGnrlNm", scientificName: "plantSpecsScnm", family: "familyKorNm", familyScientific: "familyNm", genus: "genusKorNm", englishName: "engNm" };
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapSummary(it: any): PlantSummary {
+  const f = F();
   return {
-    pilbkNo: str(it.plantPilbkNo),
-    koreanName: str(it.plantGnrlNm),
-    scientificName: str(it.plantSpecsScnm),
-    family: str(it.familyKorNm),
-    familyNm: str(it.familyNm),
-    genus: str(it.genusKorNm),
+    pilbkNo: str(it[f.id]),
+    koreanName: str(it[f.koreanName]),
+    scientificName: str(it[f.scientificName]),
+    family: str(it[f.family]),
+    familyNm: str(it[f.familyScientific]),
+    genus: str(it[f.genus]),
   };
 }
 
@@ -170,7 +186,7 @@ function mapSummary(it: any): PlantSummary {
 function mapDetail(it: any): PlantDetail {
   return {
     ...mapSummary(it),
-    engNm: str(it.engNm),
+    engNm: str(it[F().englishName]),
     shpe: str(it.shpe),
     spft: str(it.spft),
     grwEvrntDesc: str(it.grwEvrntDesc),
@@ -226,11 +242,8 @@ export async function searchPlants(q: string, key: string, opts: { fresh?: boole
   if (isMock()) {
     result = mockSearch(q);
   } else {
-    const { code, body } = await callXml(
-      "plantPilbkSearch",
-      { pageNo: "1", numOfRows: "10", reqSearchWrd: q },
-      key,
-    );
+    const api = requireDataApi();
+    const { code, body } = await callXml(api.search.url, { pageNo: "1", numOfRows: "10", ...api.search.params, [api.search.keywordParam]: q }, key);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const items = code === "03" ? [] : arr((body.items as any)?.item).map(mapSummary);
     const total = Number(body.totalCount ?? items.length);
@@ -249,7 +262,8 @@ export async function getPlantDetail(no: string, key: string): Promise<PlantDeta
   if (isMock()) {
     result = mockDetail(no);
   } else {
-    const { code, body } = await callXml("plantPilbkInfo", { reqPlantPilbkNo: no }, key);
+    const api = requireDataApi();
+    const { code, body } = await callXml(api.detail.url, { [api.detail.idParam]: no }, key);
     result = code === "03" || !body.item ? null : mapDetail(body.item);
   }
   toCache(ck, result);
@@ -263,9 +277,10 @@ export async function getPlantDetail(no: string, key: string): Promise<PlantDeta
 export function dataErrorResponse(e: unknown) {
   if (e instanceof DataGoKrError) {
     const bad = KEY_ERROR_CODES.has(e.code);
+    const notConnected = e.code === "NOT_CONNECTED";
     return Response.json(
-      { error: bad ? "BAD_DATA_KEY" : "API_ERROR", code: e.code, message: friendlyDataMessage(e) },
-      { status: bad ? 401 : 502 },
+      { error: bad ? "BAD_DATA_KEY" : notConnected ? "NOT_CONNECTED" : "API_ERROR", code: e.code, message: friendlyDataMessage(e) },
+      { status: bad ? 401 : notConnected ? 503 : 502 },
     );
   }
   const msg = e instanceof Error ? e.message : "알 수 없는 오류";
