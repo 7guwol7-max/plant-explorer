@@ -1,20 +1,68 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { loadCards, deleteCard, type Card } from "@/lib/client/cards";
+import { LEAF_SHAPES, LEAF_VEINS, STEMS, PLACES } from "@/lib/client/draft";
+import { FIELD_SHORT } from "@/lib/fields";
+import { GRADE_LABEL } from "@/lib/curriculum";
 
-const LABEL: Record<string, string> = {
-  shpe: "형태", spft: "특징", grwEvrntDesc: "생육환경", rrngType: "생육형", rrngGubun: "생육상 구분",
-  dstrb: "분포", osDstrb: "해외 분포", orplcNm: "원산지", inductionDesc: "도입 여부",
-  smlrPlntDesc: "유사종", useMthdDesc: "이용 방안", prtcPlnDesc: "보호 방안",
-};
+type View = "cards" | "sort" | "curri";
+type Criterion = "leafShape" | "leafVein" | "stem" | "place" | "custom";
+type CustomSort = { question: string; yes: string[]; no: string[] };
 
-/** 나의 도감 — 이 기기에 저장된 카드 */
+const CRITERIA: { key: Criterion; label: string; order?: string[] }[] = [
+  { key: "leafShape", label: "잎 모양", order: LEAF_SHAPES },
+  { key: "leafVein", label: "잎맥", order: LEAF_VEINS },
+  { key: "stem", label: "줄기", order: STEMS },
+  { key: "place", label: "찾은 장소", order: PLACES },
+  { key: "custom", label: "✍️ 내가 정한 기준" },
+];
+
+const SORT_KEY = "mySort";
+const NONE = "기록 없음";
+
+function loadSort(): CustomSort {
+  try {
+    const j = JSON.parse(localStorage.getItem(SORT_KEY) ?? "null");
+    if (j && typeof j.question === "string") return { question: j.question, yes: j.yes ?? [], no: j.no ?? [] };
+  } catch {}
+  return { question: "", yes: [], no: [] };
+}
+function storeSort(s: CustomSort) {
+  try { localStorage.setItem(SORT_KEY, JSON.stringify(s)); } catch {}
+}
+
+function valueOf(c: Card, k: Exclude<Criterion, "custom">): string {
+  const v = k === "place" ? c.place : c.myObservation?.[k];
+  return v && v.trim() ? v : NONE;
+}
+
+/** 나의 도감 — 이 기기에 저장된 카드 · 분류해 보기 · 교과서 연결별 보기 */
 export default function MyPage() {
   const [cards, setCards] = useState<Card[]>([]);
   const [open, setOpen] = useState<Card | null>(null);
+  const [view, setView] = useState<View>("cards");
+  const [crit, setCrit] = useState<Criterion>("leafShape");
+  const [custom, setCustom] = useState<CustomSort>({ question: "", yes: [], no: [] });
 
-  useEffect(() => { setCards(loadCards()); }, []);
+  useEffect(() => {
+    setCards(loadCards());
+    setCustom(loadSort());
+    const v = new URLSearchParams(window.location.search).get("view");
+    if (v === "sort" || v === "curri") setView(v);
+  }, []);
+
+  function updateCustom(next: CustomSort) {
+    setCustom(next);
+    storeSort(next);
+  }
+
+  function place(id: string, side: "yes" | "no") {
+    const yes = custom.yes.filter((x) => x !== id);
+    const no = custom.no.filter((x) => x !== id);
+    (side === "yes" ? yes : no).push(id);
+    updateCustom({ ...custom, yes, no });
+  }
 
   function remove(id: string) {
     if (!confirm("이 카드를 지울까요?")) return;
@@ -23,6 +71,33 @@ export default function MyPage() {
     setOpen(null);
   }
 
+  /** 기준별 무리 나누기 */
+  const groups = useMemo(() => {
+    if (crit === "custom") return [];
+    const order = CRITERIA.find((c) => c.key === crit)?.order ?? [];
+    const map = new Map<string, Card[]>();
+    for (const c of cards) {
+      const v = valueOf(c, crit);
+      map.set(v, [...(map.get(v) ?? []), c]);
+    }
+    const rank = (v: string) => (v === NONE ? 999 : order.indexOf(v) < 0 ? 500 : order.indexOf(v));
+    return [...map.entries()].sort((a, b) => rank(a[0]) - rank(b[0]));
+  }, [cards, crit]);
+
+  /** 성취기준별 모아 보기 */
+  const byStandard = useMemo(() => {
+    const map = new Map<string, { code: string; subject: string; unit: string; officialText: string; cards: Card[] }>();
+    for (const c of cards) {
+      for (const k of c.curriculum ?? []) {
+        const e = map.get(k.code) ?? { code: k.code, subject: k.subject, unit: k.unit, officialText: k.officialText, cards: [] };
+        e.cards.push(c);
+        map.set(k.code, e);
+      }
+    }
+    return [...map.values()].sort((a, b) => a.code.localeCompare(b.code, "ko"));
+  }, [cards]);
+
+  /* ───────── 카드 한 장 ───────── */
   if (open) {
     const c = open;
     return (
@@ -37,7 +112,7 @@ export default function MyPage() {
         <div className="card">
           <div className="row" style={{ justifyContent: "space-between" }}>
             <h2 style={{ margin: 0 }}>{c.confirmed.koreanName}</h2>
-            <span className={`badge ${c.verified === "일치" ? "official" : "warn"}`}>AI와 내 관찰: {c.verified}</span>
+            <span className={`badge ${c.verified === "일치" ? "official" : "warn"}`}>내 관찰과: {c.verified}</span>
           </div>
           <div className="muted small" style={{ fontStyle: "italic" }}>{c.confirmed.scientificName}{c.confirmed.family ? ` · ${c.confirmed.family}` : ""}</div>
           {c.photo && <img src={c.photo} alt="" style={{ width: "100%", borderRadius: 12, marginTop: 10 }} />}
@@ -60,6 +135,26 @@ export default function MyPage() {
           <div style={{ whiteSpace: "pre-wrap" }}>{c.newLearning || <span className="muted">(비어 있음)</span>}</div>
         </div>
 
+        {c.curriculum?.length ? (
+          <div className="card curri-card">
+            <div className="row" style={{ justifyContent: "space-between" }}>
+              <h2 style={{ margin: 0 }}>📚 교과서 연결</h2>
+              {c.gradeBand && <span className="badge curri">{GRADE_LABEL[c.gradeBand]}</span>}
+            </div>
+            {c.curriculum.map((k) => (
+              <div className="curri" key={k.code}>
+                <div className="row" style={{ justifyContent: "space-between" }}>
+                  <span className="curri-unit">{k.subject} · {k.unit}</span>
+                  <code className="inline">{k.code}</code>
+                </div>
+                <blockquote className="official-text">{k.officialText}</blockquote>
+                <div className="small"><strong>해 본 활동</strong> {k.activity}</div>
+                <div style={{ whiteSpace: "pre-wrap", marginTop: 4 }}>{k.answer || <span className="muted">(비어 있음)</span>}</div>
+              </div>
+            ))}
+          </div>
+        ) : null}
+
         {c.kidSummary && (
           <div className="card">
             <span className="badge ai">AI 쉬운 설명</span>
@@ -69,9 +164,9 @@ export default function MyPage() {
 
         <div className="card">
           <span className="badge official">국립수목원 공식 정보</span>
-          {Object.entries(c.official).filter(([k]) => k !== "source" && LABEL[k]).map(([k, v]) => (
+          {Object.entries(c.official).filter(([k]) => k !== "source" && FIELD_SHORT[k]).map(([k, v]) => (
             <details key={k} className="field-block" style={{ marginTop: 8 }}>
-              <summary>{LABEL[k]}</summary>
+              <summary>{FIELD_SHORT[k]}</summary>
               <p>{v}</p>
             </details>
           ))}
@@ -81,6 +176,21 @@ export default function MyPage() {
     );
   }
 
+  const tile = (c: Card, extra?: React.ReactNode) => (
+    <div key={c.id} className="tile">
+      <div onClick={() => setOpen(c)} style={{ cursor: "pointer" }}>
+        {c.photo ? <img src={c.photo} alt="" /> : <div className="noimg">🌱</div>}
+        <div className="body">
+          <div className="name">{c.confirmed.koreanName}</div>
+          <div className="meta">{c.place ?? ""} · {new Date(c.createdAt).toLocaleDateString("ko-KR")}</div>
+          {view === "cards" && <div className="meta">{c.verified === "일치" ? "✅ 관찰 일치" : c.verified === "불일치" ? "❌ 관찰 다름" : "❓ 확인 필요"}</div>}
+        </div>
+      </div>
+      {extra}
+    </div>
+  );
+
+  /* ───────── 목록 ───────── */
   return (
     <>
       <div className="card">
@@ -88,24 +198,100 @@ export default function MyPage() {
           <h2 style={{ margin: 0 }}>📒 나의 도감</h2>
           <span className="muted small">{cards.length}장 · 이 기기에만 저장</span>
         </div>
+        {cards.length > 0 && (
+          <div className="tabs" style={{ marginTop: 10, marginBottom: 0 }}>
+            <button className={view === "cards" ? "on" : ""} onClick={() => setView("cards")}>카드</button>
+            <button className={view === "sort" ? "on" : ""} onClick={() => setView("sort")}>🗂️ 분류해 보기</button>
+            <button className={view === "curri" ? "on" : ""} onClick={() => setView("curri")}>📚 교과서별</button>
+          </div>
+        )}
       </div>
+
       {cards.length === 0 && (
         <div className="card">
-          <p>아직 카드가 없어요. <Link href="/" style={{ color: "var(--green)", fontWeight: 700 }}>식물을 발견하러 가기 →</Link></p>
+          <p>아직 카드가 없어요. <Link href="/" className="link">식물을 발견하러 가기 →</Link></p>
         </div>
       )}
-      <div className="grid">
-        {cards.map((c) => (
-          <div key={c.id} className="tile" onClick={() => setOpen(c)}>
-            {c.photo ? <img src={c.photo} alt="" /> : <div className="noimg">🌱</div>}
-            <div className="body">
-              <div className="name">{c.confirmed.koreanName}</div>
-              <div className="meta">{c.place ?? ""} · {new Date(c.createdAt).toLocaleDateString("ko-KR")}</div>
-              <div className="meta">{c.verified === "일치" ? "✅ 관찰 일치" : c.verified === "불일치" ? "❌ 관찰 다름" : "❓ 확인 필요"}</div>
+
+      {view === "cards" && <div className="grid">{cards.map((c) => tile(c))}</div>}
+
+      {view === "sort" && cards.length > 0 && (
+        <>
+          <div className="card">
+            <h2>🗂️ 기준을 정해 나눠 봐요</h2>
+            <p className="small" style={{ marginTop: -4 }}>
+              누가 나눠도 결과가 똑같이 나오는 기준이 좋은 기준이에요. ‘예쁜가?’처럼 사람마다 생각이 다른 기준은 피해요.
+            </p>
+            <div className="chips">
+              {CRITERIA.map((c) => (
+                <button key={c.key} className={`chip ${crit === c.key ? "on" : ""}`} onClick={() => setCrit(c.key)}>{c.label}</button>
+              ))}
             </div>
+            {crit === "custom" && (
+              <label className="field" style={{ marginTop: 12, marginBottom: 0 }}>
+                <span>내 분류 기준 (예/아니요로 답할 수 있게)</span>
+                <input className="input" value={custom.question} onChange={(e) => updateCustom({ ...custom, question: e.target.value })} placeholder="예: 잎의 가장자리가 톱니 모양인가요?" />
+              </label>
+            )}
           </div>
-        ))}
-      </div>
+
+          {crit !== "custom" &&
+            groups.map(([name, list]) => (
+              <div className="card" key={name}>
+                <h3 style={{ marginTop: 0 }}>{name} <span className="muted small">({list.length}장)</span></h3>
+                <div className="grid">{list.map((c) => tile(c))}</div>
+              </div>
+            ))}
+
+          {crit === "custom" && (
+            <>
+              {(["yes", "no"] as const).map((side) => {
+                const list = cards.filter((c) => custom[side].includes(c.id));
+                return (
+                  <div className="card" key={side}>
+                    <h3 style={{ marginTop: 0 }}>{side === "yes" ? "⭕ 그렇다" : "❌ 그렇지 않다"} <span className="muted small">({list.length}장)</span></h3>
+                    {list.length === 0 ? <p className="muted small">아래 카드에서 골라 넣어요.</p> : <div className="grid">{list.map((c) => tile(c, <SortButtons onPick={(s) => place(c.id, s)} />))}</div>}
+                  </div>
+                );
+              })}
+              {cards.some((c) => !custom.yes.includes(c.id) && !custom.no.includes(c.id)) && (
+                <div className="card">
+                  <h3 style={{ marginTop: 0 }}>아직 안 나눈 카드</h3>
+                  <div className="grid">
+                    {cards.filter((c) => !custom.yes.includes(c.id) && !custom.no.includes(c.id)).map((c) => tile(c, <SortButtons onPick={(s) => place(c.id, s)} />))}
+                  </div>
+                </div>
+              )}
+              <button className="btn btn-ghost" onClick={() => updateCustom({ question: custom.question, yes: [], no: [] })}>다시 나누기</button>
+            </>
+          )}
+        </>
+      )}
+
+      {view === "curri" && cards.length > 0 && (
+        <>
+          {byStandard.length === 0 && <div className="card"><p className="muted">교과서 연결이 저장된 카드가 아직 없어요. 새로 저장하는 카드부터 모여요.</p></div>}
+          {byStandard.map((g) => (
+            <div className="card curri-card" key={g.code}>
+              <div className="row" style={{ justifyContent: "space-between" }}>
+                <span className="curri-unit">{g.subject} · {g.unit}</span>
+                <code className="inline">{g.code}</code>
+              </div>
+              <blockquote className="official-text">{g.officialText}</blockquote>
+              <div className="grid">{g.cards.map((c) => tile(c))}</div>
+            </div>
+          ))}
+        </>
+      )}
     </>
+  );
+}
+
+function SortButtons({ onPick }: { onPick: (s: "yes" | "no") => void }) {
+  return (
+    <div className="row sort-btns">
+      <button className="btn btn-sm" onClick={() => onPick("yes")}>⭕</button>
+      <button className="btn btn-sm" onClick={() => onPick("no")}>❌</button>
+    </div>
   );
 }

@@ -1,0 +1,98 @@
+"use client";
+import { useState } from "react";
+import Link from "next/link";
+import { FIELD_SHORT, SOURCE_NAME } from "@/lib/fields";
+import { GRADE_BANDS, GRADE_LABEL, type CurriculumLink, type GradeBand } from "@/lib/curriculum";
+
+const SHOW_FIRST = 3;
+
+/**
+ * 📚 교과서와 연결하기
+ * - 연결은 data/curriculum.json 규칙으로 계산한다 (AI 아님) → 같은 식물·같은 관찰이면 언제나 같은 결과
+ * - 성취기준 문장은 교육과정 원문 그대로, '해 볼 활동'은 앱 제안임을 구분해 보여 준다
+ */
+export default function CurriculumLinks({
+  links,
+  grade,
+  onGrade,
+  answers,
+  onAnswer,
+}: {
+  links: CurriculumLink[];
+  grade: GradeBand;
+  onGrade: (g: GradeBand) => void;
+  answers: Record<string, string>;
+  onAnswer: (code: string, v: string) => void;
+}) {
+  const [more, setMore] = useState(false);
+  const shown = more ? links : links.slice(0, SHOW_FIRST);
+
+  return (
+    <div className="card curri-card">
+      <div className="row" style={{ justifyContent: "space-between" }}>
+        <h2 style={{ margin: 0 }}>📚 교과서와 연결하기</h2>
+        <span className="badge curri">2022 개정 교육과정</span>
+      </div>
+      <p className="muted small" style={{ margin: "6px 0 8px" }}>이 식물 탐구가 {GRADE_LABEL[grade]} 시간에 배우는 내용과 이렇게 이어져요.</p>
+      <div className="chips" style={{ marginBottom: 12 }}>
+        {GRADE_BANDS.map((g) => (
+          <button key={g} className={`chip ${grade === g ? "on" : ""}`} onClick={() => onGrade(g)}>{GRADE_LABEL[g]}</button>
+        ))}
+      </div>
+
+      {links.length === 0 && <p className="muted">이 학년에 연결할 내용을 찾지 못했어요.</p>}
+
+      {shown.map(({ standard: s, reasons }) => (
+        <div className="curri" key={s.code}>
+          <div className="row" style={{ justifyContent: "space-between" }}>
+            <span className="curri-unit">{s.subject} · {s.unit}</span>
+            <code className="inline">{s.code}</code>
+          </div>
+          <blockquote className="official-text">{s.officialText}</blockquote>
+
+          <div className="why small">
+            <strong>🔗 이어지는 까닭</strong>
+            <ul>
+              {reasons.map((r, i) => (
+                <li key={i}>
+                  {r.text}
+                  {r.evidence && (
+                    <div className="evidence">
+                      “{r.evidence.sentence}”
+                      <span className="muted"> — {SOURCE_NAME} ‘{FIELD_SHORT[r.evidence.field] ?? r.evidence.field}’</span>
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <label className="field" style={{ marginBottom: 6 }}>
+            <span>✏️ 해 볼 활동 <em className="muted" style={{ fontStyle: "normal", fontWeight: 500 }}>(앱 제안)</em></span>
+            <p className="small" style={{ margin: "0 0 6px", color: "var(--ink)" }}>{s.activity}</p>
+            <textarea className="input" rows={2} value={answers[s.code] ?? ""} onChange={(e) => onAnswer(s.code, e.target.value)} placeholder="생각하거나 관찰한 것을 적어요" />
+          </label>
+          {s.code === "[4과03-01]" && <Link href="/my?view=sort" className="link small">🗂️ 나의 도감에서 분류해 보기 →</Link>}
+
+          <details className="teacher-note">
+            <summary>선생님용: 성취기준 해설 · 출처</summary>
+            {s.commentary && <p><strong>성취기준 해설</strong><br />{s.commentary}</p>}
+            {s.considerations.length > 0 && (
+              <div><strong>적용 시 고려 사항</strong><ul>{s.considerations.map((c, i) => <li key={i}>{c}</li>)}</ul></div>
+            )}
+            {s.inquiry.length > 0 && <p><strong>탐구 활동</strong> {s.inquiry.join(", ")}</p>}
+            {s.note && <p className="warn-text">{s.note}</p>}
+            <p className="muted">출처: {s.source.title} {s.source.pages}쪽 · 앱 활용: {s.teacherNote}</p>
+          </details>
+        </div>
+      ))}
+
+      {links.length > SHOW_FIRST && (
+        <button className="btn btn-ghost btn-sm" onClick={() => setMore((v) => !v)}>
+          {more ? "접기" : `연결 ${links.length - SHOW_FIRST}개 더 보기`}
+        </button>
+      )}
+      <div className="source">성취기준 문장은 교육과정 원문 그대로예요. <Link href="/curriculum" className="link">전체 연결표 보기</Link></div>
+    </div>
+  );
+}

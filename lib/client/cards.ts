@@ -3,6 +3,17 @@
  * 사진은 긴 변 640px JPEG 로 줄여 저장한다 (브라우저 저장소 한도 고려, 보통 20~30장).
  */
 import type { CandidateLite, Observation } from "./draft";
+import type { GradeBand } from "@/lib/curriculum";
+
+/** 카드에 남기는 교육과정 연결 (원문을 함께 저장해 나중에 자료가 바뀌어도 카드가 그대로 읽힌다) */
+export type CardCurriculum = {
+  code: string;
+  subject: string;
+  unit: string;
+  officialText: string;
+  activity: string;
+  answer: string;
+};
 
 export type Card = {
   id: string;
@@ -17,6 +28,8 @@ export type Card = {
   answers: { q: string; a: string }[];
   newLearning: string;
   verified: "일치" | "불일치" | "모름";
+  gradeBand?: GradeBand;
+  curriculum?: CardCurriculum[];
 };
 
 const C = "cards";

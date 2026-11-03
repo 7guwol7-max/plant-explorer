@@ -5,6 +5,7 @@
  * - MOCK=1 이면 외부 호출 없이 고정 응답
  */
 import { isMock } from "./keys";
+import type { Standard } from "../curriculum";
 
 const MODEL = () => process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
@@ -130,6 +131,7 @@ export async function explain(
   official: Record<string, string>,
   grade: string,
   key: string,
+  standards: Standard[] = [],
 ): Promise<ExplainResult> {
   if (isMock()) {
     return {
@@ -148,9 +150,19 @@ export async function explain(
 - kidSummary: 3~4문장. 원문에 없는 내용은 절대 쓰지 말 것. 모르는 항목은 언급하지 말 것.
 - observeQuestions: 학생이 지금 눈앞의 실제 식물을 보고 확인할 수 있는 관찰 질문 3개 (잎, 줄기, 꽃, 열매, 자라는 환경 중심)
 - compareHint: 원문의 '유사종' 정보가 있으면 그것과 구별하는 관찰 포인트 1~2문장, 없으면 "비슷한 식물과 잎 모양·잎맥·줄기를 비교해 보세요."
-공식 정보:
+${curriculumBlock(standards)}공식 정보:
 ${JSON.stringify(official, null, 0)}`;
   return generate(key, [{ text: prompt }], EXPLAIN_SCHEMA);
+}
+
+/** 연결된 성취기준과 해설에 따라 '다루지 않는 내용'을 프롬프트에 붙인다 */
+export function curriculumBlock(standards: Standard[]): string {
+  if (!standards.length) return "";
+  const lines = standards.map((s) => `- ${s.code} ${s.officialText}`).join("\n");
+  const avoid = [...new Set(standards.flatMap((s) => s.aiAvoid))];
+  return `- 관찰 질문은 아래 교육과정 성취기준의 탐구로 이어지게 만들 것 (성취기준 코드나 '성취기준'이라는 말은 쓰지 말 것):
+${lines}
+${avoid.length ? `- 이 학년에서 다루지 않는 내용이므로 쓰지 말 것: ${avoid.join(", ")}\n` : ""}`;
 }
 
 /* ───────── 연결 확인 ───────── */
