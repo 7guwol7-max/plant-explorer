@@ -15,6 +15,11 @@ export async function shrinkDataUrl(dataUrl: string, maxSide = 640, quality = 0.
   return drawToDataUrl(img, maxSide, quality);
 }
 
+/** 웹캠 화면의 지금 장면을 사진으로 (컴퓨터 카메라용) */
+export function videoToDataUrl(video: HTMLVideoElement, maxSide = 1024, quality = 0.85): string {
+  return drawToDataUrl(video, maxSide, quality);
+}
+
 async function loadImage(file: File): Promise<ImageBitmap | HTMLImageElement> {
   if ("createImageBitmap" in window) {
     try {
@@ -37,9 +42,11 @@ async function loadImage(file: File): Promise<ImageBitmap | HTMLImageElement> {
   }
 }
 
-function drawToDataUrl(img: ImageBitmap | HTMLImageElement, maxSide: number, quality: number): string {
-  const w = "width" in img ? img.width : 0;
-  const h = "height" in img ? img.height : 0;
+function drawToDataUrl(img: ImageBitmap | HTMLImageElement | HTMLVideoElement, maxSide: number, quality: number): string {
+  const isVideo = typeof HTMLVideoElement !== "undefined" && img instanceof HTMLVideoElement;
+  const w = isVideo ? img.videoWidth : img.width;
+  const h = isVideo ? img.videoHeight : img.height;
+  if (!w || !h) throw new Error("사진 크기를 읽지 못했어요");
   const scale = Math.min(1, maxSide / Math.max(w, h));
   const canvas = document.createElement("canvas");
   canvas.width = Math.round(w * scale);
