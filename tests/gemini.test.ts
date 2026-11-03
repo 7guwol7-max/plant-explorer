@@ -1,14 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  DEFAULT_MODELS,
-  GeminiError,
-  classifyGeminiError,
-  generate,
-  geminiErrorResponse,
-  modelCandidates,
-  resetModelMemory,
-  suggestedModel,
-} from "@/lib/server/gemini";
+import { GEMINI_MODELS as DEFAULT_MODELS, classifyGemini, generateGemini, suggestGemini as suggestedModel, toGeminiSchema } from "@/lib/server/ai/gemini";
+import { modelCandidates as mc, resetModelMemory } from "@/lib/server/ai/chain";
+import { AiError as GeminiError, aiErrorResponse as geminiErrorResponse } from "@/lib/server/ai/errors";
+
+const classifyGeminiError = (status: number, message: string) => classifyGemini({ ok: false, status, message });
+const modelCandidates = () => mc("gemini", process.env.GEMINI_MODEL, DEFAULT_MODELS);
+const generate = (key: string, parts: { text: string }[], schema: Record<string, unknown>) =>
+  generateGemini({ key, prompt: parts.map((p) => p.text).join(""), schema: schema as never });
 
 const RETIRED_MSG =
   "This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features";
@@ -32,7 +30,7 @@ function fakeGoogle(replies: Record<string, Reply | ((body: { generationConfig: 
   return calls;
 }
 
-const SCHEMA = { type: "OBJECT", properties: { ok: { type: "BOOLEAN" } } };
+const SCHEMA = { type: "object", properties: { ok: { type: "boolean" } }, required: ["ok"], additionalProperties: false };
 
 beforeEach(() => {
   resetModelMemory();
@@ -54,8 +52,11 @@ describe("제미나이 오류 분류", () => {
     expect(classifyGeminiError(0, "timeout")).toBe("busy");
     expect(classifyGeminiError(429, "quota")).toBe("quota");
   });
-  it("생각 설정을 모르는 모델", () => {
-    expect(classifyGeminiError(400, "Unknown name \"thinkingLevel\" at 'generation_config.thinking_config'")).toBe("thinking");
+  it("생각 설정을 모르는 모델 → 기능을 줄여 다시", () => {
+    expect(classifyGeminiError(400, "Unknown name \"thinkingLevel\" at 'generation_config.thinking_config'")).toBe("degrade");
+  });
+  it("표준 스키마를 제미나이 형식(대문자, additionalProperties 없음)으로", () => {
+    expect(toGeminiSchema(SCHEMA as never)).toEqual({ type: "OBJECT", properties: { ok: { type: "BOOLEAN" } }, required: ["ok"] });
   });
   it("구글이 알려 준 대체 모델 이름을 꺼낸다", () => {
     expect(suggestedModel(RETIRED_MSG)).toBe("gemini-3.8-flash");
@@ -128,13 +129,15 @@ describe("모델 고르기", () => {
 });
 
 describe("오류 응답", () => {
-  it("키 문제는 401 BAD_GEMINI_KEY (화면이 설정 안내를 띄움)", async () => {
-    const res = geminiErrorResponse(new GeminiError(400, "API key not valid", "key"));
+  it("키 문제는 401 BAD_AI_KEY (화면이 설정 안내를 띄움)", async () => {
+    const res = geminiErrorResponse(new GeminiError(400, "API key not valid", "key", "gemini"));
     expect(res.status).toBe(401);
-    expect((await res.json()).error).toBe("BAD_GEMINI_KEY");
+    const j = await res.json();
+    expect(j.error).toBe("BAD_AI_KEY");
+    expect(j.message).toContain("제미나이");
   });
-  it("그 밖은 502 GEMINI_ERROR 와 쉬운 안내문", async () => {
-    const res = geminiErrorResponse(new GeminiError(503, "high demand", "busy"));
+  it("그 밖은 502 AI_ERROR 와 쉬운 안내문", async () => {
+    const res = geminiErrorResponse(new GeminiError(503, "high demand", "busy", "gemini"));
     expect(res.status).toBe(502);
     expect((await res.json()).message).toContain("바빠요");
   });

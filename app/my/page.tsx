@@ -5,6 +5,7 @@ import { loadCards, deleteCard, type Card } from "@/lib/client/cards";
 import { LEAF_SHAPES, LEAF_VEINS, STEMS, PLACES } from "@/lib/client/draft";
 import { FIELD_SHORT } from "@/lib/fields";
 import { GRADE_LABEL } from "@/lib/curriculum";
+import { useRole } from "@/lib/client/prefs";
 
 type View = "cards" | "sort" | "curri";
 type Criterion = "leafShape" | "leafVein" | "stem" | "place" | "custom";
@@ -39,6 +40,8 @@ function valueOf(c: Card, k: Exclude<Criterion, "custom">): string {
 
 /** 나의 도감 — 이 기기에 저장된 카드 · 분류해 보기 · 교과서 연결별 보기 */
 export default function MyPage() {
+  const role = useRole();
+  const teacher = role === "teacher";
   const [cards, setCards] = useState<Card[]>([]);
   const [open, setOpen] = useState<Card | null>(null);
   const [view, setView] = useState<View>("cards");
@@ -86,10 +89,10 @@ export default function MyPage() {
 
   /** 성취기준별 모아 보기 */
   const byStandard = useMemo(() => {
-    const map = new Map<string, { code: string; subject: string; unit: string; officialText: string; cards: Card[] }>();
+    const map = new Map<string, { code: string; subject: string; unit: string; officialText: string; kidText?: string; cards: Card[] }>();
     for (const c of cards) {
       for (const k of c.curriculum ?? []) {
-        const e = map.get(k.code) ?? { code: k.code, subject: k.subject, unit: k.unit, officialText: k.officialText, cards: [] };
+        const e = map.get(k.code) ?? { code: k.code, subject: k.subject, unit: k.unit, officialText: k.officialText, kidText: k.kidText, cards: [] };
         e.cards.push(c);
         map.set(k.code, e);
       }
@@ -123,6 +126,20 @@ export default function MyPage() {
           {c.aiCandidates?.length ? <p className="small"><span className="badge ai">AI 후보</span> {c.aiCandidates.map((a) => a.koreanName).join(", ")}</p> : null}
         </div>
 
+        {c.drawings?.length ? (
+          <div className="card">
+            <h2>✏️ 나의 관찰 그림</h2>
+            <div className="drawings">
+              {c.drawings.map((d, i) => (
+                <figure key={i} className="drawing" style={{ margin: 0 }}>
+                  <img src={d.image} alt={`관찰 그림 ${i + 1}`} />
+                  <figcaption className="small">{d.note || <span className="muted">(설명 없음)</span>}</figcaption>
+                </figure>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
         <div className="card">
           <h2>나의 기록</h2>
           {c.answers.map((a, i) => (
@@ -145,9 +162,13 @@ export default function MyPage() {
               <div className="curri" key={k.code}>
                 <div className="row" style={{ justifyContent: "space-between" }}>
                   <span className="curri-unit">{k.subject} · {k.unit}</span>
-                  <code className="inline">{k.code}</code>
+                  {teacher && <code className="inline">{k.code}</code>}
                 </div>
-                <blockquote className="official-text">{k.officialText}</blockquote>
+                {teacher || !k.kidText ? (
+                  <blockquote className="official-text">{k.officialText}</blockquote>
+                ) : (
+                  <div className="kid-text"><span className="kid-label">📖 우리 교과서에 이런 내용이 나와요</span><p>{k.kidText}</p></div>
+                )}
                 <div className="small"><strong>해 본 활동</strong> {k.activity}</div>
                 <div style={{ whiteSpace: "pre-wrap", marginTop: 4 }}>{k.answer || <span className="muted">(비어 있음)</span>}</div>
               </div>
@@ -183,7 +204,7 @@ export default function MyPage() {
         <div className="body">
           <div className="name">{c.confirmed.koreanName}</div>
           <div className="meta">{c.place ?? ""} · {new Date(c.createdAt).toLocaleDateString("ko-KR")}</div>
-          {view === "cards" && <div className="meta">{c.verified === "일치" ? "✅ 관찰 일치" : c.verified === "불일치" ? "❌ 관찰 다름" : "❓ 확인 필요"}</div>}
+          {view === "cards" && <div className="meta">{c.verified === "일치" ? "✅ 관찰 일치" : c.verified === "불일치" ? "❌ 관찰 다름" : "❓ 확인 필요"}{c.drawings?.length ? ` · ✏️ 그림 ${c.drawings.length}` : ""}</div>}
         </div>
       </div>
       {extra}
@@ -275,9 +296,13 @@ export default function MyPage() {
             <div className="card curri-card" key={g.code}>
               <div className="row" style={{ justifyContent: "space-between" }}>
                 <span className="curri-unit">{g.subject} · {g.unit}</span>
-                <code className="inline">{g.code}</code>
+                {teacher && <code className="inline">{g.code}</code>}
               </div>
-              <blockquote className="official-text">{g.officialText}</blockquote>
+              {teacher || !g.kidText ? (
+                <blockquote className="official-text">{g.officialText}</blockquote>
+              ) : (
+                <div className="kid-text"><p>{g.kidText}</p></div>
+              )}
               <div className="grid">{g.cards.map((c) => tile(c))}</div>
             </div>
           ))}

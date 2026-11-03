@@ -31,7 +31,8 @@ export type Standard = {
   gradeBand: GradeBand;
   domain: string;
   unit: string;
-  officialText: string;          // 교육과정 원문 (수정 금지)
+  officialText: string;          // 교육과정 원문 (수정 금지) — 선생님 보기
+  kidText: string;               // 학생 보기: 같은 내용을 학생 말로 (앱이 쓴 문장)
   commentary: string | null;     // 성취기준 해설 원문
   considerations: string[];      // 성취기준 적용 시 고려 사항 원문
   inquiry: string[];             // 별책 탐구 활동 이름

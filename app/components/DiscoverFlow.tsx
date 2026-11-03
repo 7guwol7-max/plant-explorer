@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Steps from "./Steps";
 import CameraCapture from "./CameraCapture";
+import TermChips from "./TermChips";
 import ErrorAlert from "./ErrorAlert";
 import { api, ApiError, toApiError } from "@/lib/client/keys";
 import { useConnection } from "@/lib/client/useConnection";
+import { AI_NAME } from "@/lib/ai";
 import { fileToDataUrl } from "@/lib/client/image";
 import { imageFromPaste, pasteKey, readClipboardImage } from "@/lib/client/clipboard";
 import { saveDraft, loadDraft, clearDraft, MAX_PHOTOS, PLACES, LEAF_SHAPES, LEAF_VEINS, STEMS, type CandidateLite, type Observation } from "@/lib/client/draft";
@@ -147,7 +149,7 @@ export default function DiscoverFlow() {
   }
 
   const obsDone = obs.leafShape && obs.leafVein && obs.stem;
-  const aiBlocked = conn.ready && !conn.gemini;
+  const aiBlocked = conn.ready && !conn.ai;
 
   async function askAI() {
     if (!photos.length) return;
@@ -229,14 +231,14 @@ export default function DiscoverFlow() {
     setStep(1);
   }
 
-  const setupBanner = conn.ready && !conn.mock && (!conn.data || !conn.gemini) && (
+  const setupBanner = conn.ready && !conn.mock && (!conn.data || !conn.ai) && (
     <div className="card setup">
       <h2>👋 처음 오셨나요?</h2>
       <p className="small" style={{ margin: "0 0 10px" }}>
-        {!conn.data && !conn.gemini
-          ? "사진으로 식물을 알아보려면 키 두 개(공공데이터포털·제미나이)를 한 번 넣어야 해요. 둘 다 무료예요."
-          : !conn.gemini
-            ? "사진을 보고 어떤 식물인지 알려 주는 AI(제미나이) 키가 아직 없어요."
+        {!conn.data && !conn.ai
+          ? "사진으로 식물을 알아보려면 키 두 개(공공데이터포털 + AI)를 한 번 넣어야 해요. AI는 제미나이(무료 가능)·클로드·GPT 중에 골라요."
+          : !conn.ai
+            ? "사진을 보고 어떤 식물인지 알려 주는 AI 키가 아직 없어요. 제미나이·클로드·GPT 중 하나를 넣어 주세요."
             : "국립수목원 공식 정보를 불러올 공공데이터포털 키가 아직 없어요."}{" "}
         <strong>선생님께 받은 QR이 있으면 휴대폰 카메라로 찍기만 하면 돼요.</strong>
       </p>
@@ -325,20 +327,18 @@ export default function DiscoverFlow() {
 
         <div className="card">
           <h2>AI에게 묻기 전에, 먼저 내 눈으로 관찰해요</h2>
-          <h3>잎 모양</h3>
-          <div className="chips">{LEAF_SHAPES.map((v) => <button key={v} className={`chip ${obs.leafShape === v ? "on" : ""}`} onClick={() => setObs({ ...obs, leafShape: v })}>{v}</button>)}</div>
-          <h3>잎맥</h3>
-          <div className="chips">{LEAF_VEINS.map((v) => <button key={v} className={`chip ${obs.leafVein === v ? "on" : ""}`} onClick={() => setObs({ ...obs, leafVein: v })}>{v}</button>)}</div>
-          <h3>줄기</h3>
-          <div className="chips">{STEMS.map((v) => <button key={v} className={`chip ${obs.stem === v ? "on" : ""}`} onClick={() => setObs({ ...obs, stem: v })}>{v}</button>)}</div>
+          <p className="muted small" style={{ margin: "-4px 0 0" }}>낱말이 어려우면 그림을 보고 골라요. {touch ? "'❓ 그림으로 알아보기'를 누르면 크게 볼 수 있어요." : "마우스를 올리면 설명이 나와요."}</p>
+          <TermChips group="leafShape" options={LEAF_SHAPES} value={obs.leafShape} onPick={(v) => setObs({ ...obs, leafShape: v })} />
+          <TermChips group="leafVein" options={LEAF_VEINS} value={obs.leafVein} onPick={(v) => setObs({ ...obs, leafVein: v })} />
+          <TermChips group="stem" options={STEMS} value={obs.stem} onPick={(v) => setObs({ ...obs, stem: v })} />
         </div>
 
         {err && <ErrorAlert {...err} />}
         {aiBlocked && (
-          <ErrorAlert message="사진으로 어떤 식물인지 알아보려면 제미나이 키가 필요해요. 설정에서 넣어 주세요." needsSettings />
+          <ErrorAlert message="사진으로 어떤 식물인지 알아보려면 AI 키(제미나이·클로드·GPT 중 하나)가 필요해요. 설정에서 넣어 주세요." needsSettings />
         )}
         <button className="btn btn-ai" disabled={!photos.length || !obsDone || Boolean(busy) || aiBlocked} onClick={askAI}>
-          {busy ?? "🤖 AI에게 어떤 식물인지 물어보기"}
+          {busy ?? `🤖 AI${conn.ready && conn.ai && !conn.mock ? `(${AI_NAME[conn.provider]})` : ""}에게 어떤 식물인지 물어보기`}
         </button>
         {(!photos.length || !obsDone) && (
           <p className="muted small" style={{ textAlign: "center", marginTop: 8 }}>

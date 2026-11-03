@@ -271,6 +271,88 @@ a.card.teacher-callout:hover { border-color: var(--green); }
 .qr-full-inner .student-steps { font-size: clamp(18px, 2.6vw, 28px); }
 .qr-full-inner .btn { width: auto; }
 
+
+/* ───── AI 고르기 · 보기 방식 ───── */
+.seg.seg3 { grid-template-columns: repeat(3, 1fr); }
+.seg .has-key { color: var(--green); font-weight: 700; }
+.seg.seg-inline { display: inline-grid; grid-template-columns: auto auto; }
+.seg.seg-inline button { padding: 8px 12px; font-size: 14px; }
+.role-card.on { border: 2px solid var(--curri); }
+.teacher-link.on { background: var(--curri-soft); color: var(--curri); border-color: #b9d6ec; }
+
+/* ───── 학생용 교과서 문장 ───── */
+.kid-text { margin: 8px 0; padding: 10px 12px; border-radius: 12px; background: #fff8e6; border: 1px solid #f6dfa3; }
+.kid-text .kid-label { display: block; font-size: 12px; font-weight: 700; color: #a06b00; margin-bottom: 4px; }
+.kid-text p { margin: 0; font-size: 16px; font-weight: 600; line-height: 1.6; }
+
+/* ───── 학년 눈높이 풀이 ───── */
+.btn-ai-soft { background: var(--ai-soft); color: var(--ai); border-color: #d5ccf6; }
+details.field-block .orig p { margin: 8px 0 4px; }
+details.field-block .muted-orig { margin-top: 6px; padding: 6px 10px; border-radius: 8px; background: #f6f8f4; }
+details.field-block .muted-orig p { font-size: 13.5px; color: var(--muted); margin: 2px 0; }
+.orig-label, .easy-label { display: block; font-size: 12px; font-weight: 700; margin-top: 6px; }
+.orig-label { color: var(--muted); }
+.easy-box { margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: var(--ai-soft); }
+.easy-box .easy-label { color: var(--ai); margin-top: 0; }
+.easy-box .easy-label em { font-style: normal; font-weight: 500; }
+.easy-box p { margin: 4px 0 0; font-size: 16px; line-height: 1.65; }
+.kid-summary { font-size: 17px; line-height: 1.7; margin: 0; }
+.easy-section { border-left: 4px solid var(--ai-soft); padding: 2px 0 2px 12px; }
+.easy-section p { margin: 4px 0 0; line-height: 1.65; }
+.easy-section.wonder { border-left-color: #f6dfa3; }
+.glossary { margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: #fbfcfa; border: 1px dashed var(--line); }
+.glossary dl { margin: 6px 0 0; display: grid; gap: 6px; }
+.glossary dt { font-weight: 800; display: inline; }
+.glossary dt::after { content: " — "; font-weight: 400; color: var(--muted); }
+.glossary dd { display: inline; margin: 0; }
+
+/* ───── 관찰 낱말 그림 도움말 ───── */
+.term-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 14px 0 6px; }
+.term-head h3 { margin: 0; }
+.help-btn { border: 1px solid #d5ccf6; background: var(--ai-soft); color: var(--ai); border-radius: 999px; padding: 4px 10px; font-size: 13px; font-weight: 700; cursor: pointer; }
+.term-chip { position: relative; display: inline-flex; align-items: center; gap: 6px; }
+.term-icon { flex: none; }
+.term-chip .tip {
+  display: none; position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); z-index: 30;
+  width: 220px; padding: 10px 12px; border-radius: 12px; background: #fff; border: 1px solid var(--line);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12); text-align: center; font-weight: 400; color: var(--ink); white-space: normal;
+}
+.term-chip .tip strong { display: block; font-size: 15px; margin: 2px 0; }
+.term-chip .tip span { display: block; font-size: 13px; line-height: 1.5; }
+.term-chip .tip em { display: block; font-size: 12px; color: var(--muted); font-style: normal; margin-top: 4px; }
+@media (hover: hover) {
+  .term-chip:hover .tip, .term-chip:focus-visible .tip { display: block; }
+}
+.term-overlay { position: fixed; inset: 0; z-index: 55; background: rgba(20, 28, 20, 0.55); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.term-box { width: 100%; max-width: 760px; max-height: 90vh; overflow: auto; background: #fff; border-radius: var(--radius); padding: 16px; }
+.term-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+.term-card {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; padding: 12px 10px;
+  border: 1px solid var(--line); border-radius: 12px; background: #fff; cursor: pointer;
+}
+.term-card.on { border: 2px solid var(--green); background: var(--green-soft); }
+.term-card em { color: var(--muted); font-style: normal; }
+.term-card .pick { margin-top: 4px; font-size: 13px; font-weight: 700; color: var(--green); }
+
+/* ───── 관찰 그림 ───── */
+.drawings { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.drawing { border: 1px solid var(--line); border-radius: 12px; padding: 8px; background: #fff; display: flex; flex-direction: column; gap: 6px; }
+.drawing img { width: 100%; aspect-ratio: 4 / 3; object-fit: contain; background: #fff; border-radius: 8px; border: 1px solid #eef2ea; cursor: pointer; }
+.draw-overlay { position: fixed; inset: 0; z-index: 60; background: rgba(20, 28, 20, 0.7); display: flex; align-items: center; justify-content: center; padding: 8px; }
+.draw-box { width: 100%; max-width: 900px; max-height: 100vh; overflow: auto; background: #fff; border-radius: var(--radius); padding: 12px; }
+.draw-tools { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-bottom: 8px; }
+.tool-group { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.tool { border: 1px solid var(--line); background: #fff; border-radius: 10px; min-height: 36px; padding: 0 10px; font-size: 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.tool.on { border: 2px solid var(--green); background: var(--green-soft); color: var(--green); font-weight: 700; }
+.tool:disabled { opacity: 0.45; cursor: not-allowed; }
+.swatch { width: 30px; height: 30px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 1px var(--line); cursor: pointer; padding: 0; }
+.swatch.on { box-shadow: 0 0 0 3px var(--ink); }
+.dot-size { display: inline-block; border-radius: 50%; background: currentColor; }
+.draw-stage { position: relative; width: 100%; aspect-ratio: 4 / 3; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: #fff; }
+.draw-stage .layer { position: absolute; inset: 0; width: 100%; height: 100%; }
+.draw-stage .layer.top { touch-action: none; cursor: crosshair; }
+.draw-stage .layer.top.text { cursor: text; }
+
 /* ───── 컴퓨터(넓은 화면) ───── */
 @media (min-width: 900px) {
   .app-header .inner, .container, .bottom-nav .inner { max-width: 820px; }
@@ -282,5 +364,6 @@ a.card.teacher-callout:hover { border-color: var(--green); }
   .app-header, .bottom-nav, .no-print { display: none !important; }
   .container { padding: 0; max-width: none; }
   .card { break-inside: avoid; }
-  details.teacher-note, .tabs, .sort-btns { display: none !important; }
+  details.teacher-note, .tabs, .sort-btns, .help-btn, .tip { display: none !important; }
+  .drawing img { cursor: default; }
 }

@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
-import Link from "next/link";
 import "./globals.css";
 import KeyStatus from "./components/KeyStatus";
+import TeacherLink from "./components/TeacherLink";
 import KeyFromFragment from "./components/KeyFromFragment";
 import BottomNav from "./components/BottomNav";
 
@@ -28,7 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               🌿 학교 식물 탐사대 <small>AI 생태 탐사</small>
             </a>
             <div className="header-right">
-              <Link href="/teacher" className="teacher-link">👩‍🏫 선생님</Link>
+              <TeacherLink />
               <KeyStatus />
             </div>
           </div>

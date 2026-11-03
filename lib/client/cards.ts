@@ -1,6 +1,6 @@
 /**
  * 나의 도감 카드 (localStorage "cards")
- * 사진은 긴 변 640px JPEG 로 줄여 저장한다 (브라우저 저장소 한도 고려, 보통 20~30장).
+ * 사진은 긴 변 640px, 관찰 그림은 800px JPEG 로 줄여 저장한다 (브라우저 저장소 한도 고려, 보통 15~25장).
  */
 import type { CandidateLite, Observation } from "./draft";
 import type { GradeBand } from "@/lib/curriculum";
@@ -11,6 +11,7 @@ export type CardCurriculum = {
   subject: string;
   unit: string;
   officialText: string;
+  kidText?: string;
   activity: string;
   answer: string;
 };
@@ -30,7 +31,12 @@ export type Card = {
   verified: "일치" | "불일치" | "모름";
   gradeBand?: GradeBand;
   curriculum?: CardCurriculum[];
+  drawings?: Drawing[];
 };
+
+/** 학생이 그리거나 종이 그림을 찍어 올린 관찰 그림 */
+export type Drawing = { image: string; note: string; kind: "drawn" | "photo" };
+export const MAX_DRAWINGS = 2;
 
 const C = "cards";
 
@@ -49,10 +55,14 @@ export function saveCard(card: Card): { ok: boolean; message?: string } {
     localStorage.setItem(C, JSON.stringify(cards));
     return { ok: true };
   } catch {
-    // 저장소가 가득 찼을 때: 사진 없이 한 번 더 시도
+    // 저장소가 가득 찼을 때: 사진 없이 → 그림도 없이 차례로 다시 시도
     try {
       localStorage.setItem(C, JSON.stringify([{ ...card, photo: undefined }, ...cards.slice(1)]));
       return { ok: true, message: "저장 공간이 부족해 사진 없이 저장했어요. 오래된 카드를 지우면 공간이 생겨요." };
+    } catch {}
+    try {
+      localStorage.setItem(C, JSON.stringify([{ ...card, photo: undefined, drawings: undefined }, ...cards.slice(1)]));
+      return { ok: true, message: "저장 공간이 부족해 사진과 그림 없이 저장했어요. 오래된 카드를 지우면 공간이 생겨요." };
     } catch {
       return { ok: false, message: "저장 공간이 가득 찼어요. 오래된 카드를 지운 뒤 다시 시도하세요." };
     }

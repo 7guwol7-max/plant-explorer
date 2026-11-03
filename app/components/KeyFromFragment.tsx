@@ -1,7 +1,8 @@
 "use client";
 import { useEffect } from "react";
-import { saveKeys } from "@/lib/client/keys";
-import { saveGrade } from "@/lib/client/prefs";
+import { KEY_FIELD, loadKeys, saveKeys } from "@/lib/client/keys";
+import { saveGrade, saveRole } from "@/lib/client/prefs";
+import { isAiProvider } from "@/lib/ai";
 import { isGradeBand } from "@/lib/curriculum";
 
 /**
@@ -15,9 +16,14 @@ export default function KeyFromFragment() {
     if (!m) return;
     try {
       const json = decodeURIComponent(atob(m[1].replace(/-/g, "+").replace(/_/g, "/")));
-      const keys = JSON.parse(json) as { dataKey?: string; geminiKey?: string; grade?: string };
-      saveKeys({ dataKey: keys.dataKey ?? "", geminiKey: keys.geminiKey ?? "" }, true);
+      const keys = JSON.parse(json) as { dataKey?: string; geminiKey?: string; aiProvider?: string; aiKey?: string; grade?: string };
+      // 새 형식 {aiProvider, aiKey} 과 예전 형식 {geminiKey} 를 모두 받는다
+      const provider = isAiProvider(keys.aiProvider) ? keys.aiProvider : "gemini";
+      const aiKey = keys.aiKey ?? keys.geminiKey ?? "";
+      const cur = loadKeys();
+      saveKeys({ ...cur, dataKey: keys.dataKey ?? "", aiProvider: provider, [KEY_FIELD[provider]]: aiKey }, true);
       if (isGradeBand(keys.grade)) saveGrade(keys.grade);
+      saveRole("student"); // QR 을 찍는 기기는 학생 기기
       history.replaceState(null, "", window.location.pathname + window.location.search);
       alert("선생님이 보낸 설정이 이 기기에 저장되었어요. 이제 식물을 찾아볼까요?");
     } catch {

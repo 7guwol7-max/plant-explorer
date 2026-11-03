@@ -2,9 +2,10 @@
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import Link from "next/link";
-import { loadKeys } from "@/lib/client/keys";
+import { activeProvider, aiKeyOf, loadKeys } from "@/lib/client/keys";
+import { AI_NAME } from "@/lib/ai";
 import { useConnection } from "@/lib/client/useConnection";
-import { loadGrade, saveGrade } from "@/lib/client/prefs";
+import { loadGrade, saveGrade, saveRole, useRole } from "@/lib/client/prefs";
 import { GRADE_BANDS, GRADE_LABEL, type GradeBand } from "@/lib/curriculum";
 
 type Mode = "keys" | "url";
@@ -21,6 +22,7 @@ type Mode = "keys" | "url";
  */
 export default function TeacherPage() {
   const conn = useConnection();
+  const role = useRole();
   const [grade, setGrade] = useState<GradeBand>("3-4");
   const [mode, setMode] = useState<Mode>("keys");
   const [link, setLink] = useState("");
@@ -30,8 +32,8 @@ export default function TeacherPage() {
 
   useEffect(() => setGrade(loadGrade()), []);
 
-  const keysReady = conn.ownData && conn.ownGemini;
-  const sharedReady = conn.sharedData && conn.sharedGemini;
+  const keysReady = conn.ownData && conn.ownAi;
+  const sharedReady = conn.sharedData && conn.sharedAi;
 
   // 공유 키·연습 모드 배포본이면 학생 기기에 키가 필요 없으므로 '앱 주소만'이 기본
   useEffect(() => {
@@ -45,7 +47,8 @@ export default function TeacherPage() {
       url = `${window.location.origin}/settings`;
     } else if (keysReady) {
       const k = loadKeys();
-      const payload = JSON.stringify({ dataKey: k.dataKey ?? "", geminiKey: k.geminiKey ?? "", grade });
+      const p = activeProvider(k);
+      const payload = JSON.stringify({ dataKey: k.dataKey ?? "", aiProvider: p, aiKey: aiKeyOf(k, p), grade });
       const b64 = btoa(encodeURIComponent(payload)).replace(/\+/g, "-").replace(/\//g, "_");
       url = `${window.location.origin}/#k=${b64}`;
     }
@@ -103,6 +106,23 @@ export default function TeacherPage() {
         </p>
       </div>
 
+      <div className={`card role-card ${role === "teacher" ? "on" : ""}`}>
+        <div className="row" style={{ justifyContent: "space-between" }}>
+          <div>
+            <strong>이 기기의 보기 방식</strong>
+            <p className="small muted" style={{ margin: "2px 0 0" }}>
+              {role === "teacher"
+                ? "선생님 보기: 교과서 연결에 성취기준 코드·원문·해설이 그대로 보여요."
+                : "학생 보기: 교과서 연결이 학생 말(‘우리 교과서에 이런 내용이 나와요’)로 보여요."}
+            </p>
+          </div>
+          <div className="seg seg-inline" role="tablist" aria-label="보기 방식">
+            <button role="tab" aria-selected={role === "student"} className={role === "student" ? "on" : ""} onClick={() => saveRole("student")}>🧒 학생 보기</button>
+            <button role="tab" aria-selected={role === "teacher"} className={role === "teacher" ? "on" : ""} onClick={() => saveRole("teacher")}>👩‍🏫 선생님 보기</button>
+          </div>
+        </div>
+      </div>
+
       {/* ① 키 */}
       <div className={`card t-step ${done1 ? "done" : ""}`}>
         <div className="t-head">
@@ -116,7 +136,7 @@ export default function TeacherPage() {
           <>
             <ul className="key-check small">
               <li>{conn.ownData ? "✅" : "⬜"} 공공데이터포털 인증키 (국립수목원 공식 정보)</li>
-              <li>{conn.ownGemini ? "✅" : "⬜"} 제미나이 키 (사진으로 식물 알아보기)</li>
+              <li>{conn.ownAi ? "✅" : "⬜"} AI 키 — {AI_NAME[conn.provider]} (사진으로 식물 알아보기)</li>
             </ul>
             {sharedReady && !keysReady && <p className="small muted" style={{ margin: "0 0 8px" }}>이 배포본에는 강사 공유 키가 있어, 학생 기기에 키가 없어도 돼요.</p>}
             {!keysReady && <Link href="/settings" className="btn btn-primary">⚙️ 설정에서 키 넣기 (처음이면 받는 방법도 있어요)</Link>}
@@ -189,7 +209,8 @@ export default function TeacherPage() {
         <ul className="small" style={{ paddingLeft: 18, margin: 0 }}>
           <li>학생 기기 한 대로 QR을 찍어 머리글이 <strong>● 연결됨</strong>으로 바뀌는지 확인</li>
           <li>국립수목원 호출 한도: 개발계정 하루 1,000건 — 같은 식물은 앱 서버가 기억해 호출을 아껴요</li>
-          <li>한 반이 제미나이 키 하나를 함께 쓰면 무료 한도(1분당 호출 수)에 걸릴 수 있어요. 모둠별로 한 기기씩 쓰면 넉넉해요</li>
+          <li>한 반이 AI 키 하나를 함께 쓰면 호출 한도(1분당 호출 수)에 걸릴 수 있어요. 모둠별로 한 기기씩 쓰면 넉넉해요</li>
+          <li>클로드·GPT 키는 쓴 만큼 요금이 나가요. 학생 기기에 QR로 나눠 줄 때는 콘솔에서 월 사용 한도를 꼭 정해 두세요</li>
           <li>공용 컴퓨터에서는 설정에서 &quot;이번만 사용&quot;을 고르거나 수업 후 &quot;키 삭제&quot;</li>
         </ul>
       </div>

@@ -6,30 +6,32 @@
  */
 import { useEffect, useState } from "react";
 import { KEYS_EVENT, keyStatus } from "./keys";
+import type { AiProvider } from "@/lib/ai";
 
-export type ServerMode = { mock: boolean; sharedData: boolean; sharedGemini: boolean };
+export type ServerMode = { mock: boolean; sharedData: boolean; sharedAi: boolean; sharedAiProvider: AiProvider | null };
 
 export type Connection = {
   ready: boolean;
   mock: boolean;
   ownData: boolean;
-  ownGemini: boolean;
-  data: boolean;   // 국립수목원 정보를 볼 수 있는가 (내 키 · 공유 키 · 연습 모드)
-  gemini: boolean; // AI 기능을 쓸 수 있는가
+  ownAi: boolean;
+  data: boolean; // 국립수목원 정보를 볼 수 있는가 (내 키 · 공유 키 · 연습 모드)
+  ai: boolean;   // AI 기능(사진 식별·쉬운 풀이)을 쓸 수 있는가
+  provider: AiProvider; // 지금 쓰는 AI
   sharedData: boolean;
-  sharedGemini: boolean;
+  sharedAi: boolean;
 };
 
 let modePromise: Promise<ServerMode> | null = null;
 export function loadServerMode(): Promise<ServerMode> {
   modePromise ??= fetch("/api/config", { cache: "no-store" })
     .then((r) => r.json())
-    .then((j) => ({ mock: Boolean(j.mock), sharedData: Boolean(j.sharedData), sharedGemini: Boolean(j.sharedGemini) }))
-    .catch(() => ({ mock: false, sharedData: false, sharedGemini: false }));
+    .then((j) => ({ mock: Boolean(j.mock), sharedData: Boolean(j.sharedData), sharedAi: Boolean(j.sharedAi), sharedAiProvider: j.sharedAiProvider ?? null }))
+    .catch(() => ({ mock: false, sharedData: false, sharedAi: false, sharedAiProvider: null }));
   return modePromise;
 }
 
-const EMPTY: Connection = { ready: false, mock: false, ownData: false, ownGemini: false, data: false, gemini: false, sharedData: false, sharedGemini: false };
+const EMPTY: Connection = { ready: false, mock: false, ownData: false, ownAi: false, data: false, ai: false, provider: "gemini", sharedData: false, sharedAi: false };
 
 export function useConnection(): Connection {
   const [c, setC] = useState<Connection>(EMPTY);
@@ -44,11 +46,12 @@ export function useConnection(): Connection {
         ready: true,
         mock: mode.mock,
         ownData: own.hasData,
-        ownGemini: own.hasGemini,
+        ownAi: own.hasAi,
+        provider: own.hasAi ? own.provider : mode.sharedAiProvider ?? own.provider,
         sharedData: mode.sharedData,
-        sharedGemini: mode.sharedGemini,
+        sharedAi: mode.sharedAi,
         data: mode.mock || own.hasData || mode.sharedData,
-        gemini: mode.mock || own.hasGemini || mode.sharedGemini,
+        ai: mode.mock || own.hasAi || mode.sharedAi,
       });
     };
     read();

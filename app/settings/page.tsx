@@ -2,7 +2,8 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { api, loadKeys, saveKeys, clearKeys, isPersisted, type Keys } from "@/lib/client/keys";
+import { api, loadKeys, saveKeys, clearKeys, isPersisted, activeProvider, type Keys } from "@/lib/client/keys";
+import { AI_MAKER, AI_NAME, AI_PROVIDERS, detectProvider, normalizeAiKey, type AiProvider } from "@/lib/ai";
 import { useConnection } from "@/lib/client/useConnection";
 import { normalizeDataKey } from "@/lib/datakey";
 import { loadGrade, saveGrade } from "@/lib/client/prefs";
@@ -13,6 +14,45 @@ type Check = { state: "idle" | "busy" | "ok" | "bad"; message?: string; keyProbl
 const PORTAL = "https://www.data.go.kr";
 const DEV_ACCOUNT = "https://www.data.go.kr/iim/api/selectAPIAcountView.do";
 const AI_STUDIO = "https://aistudio.google.com/apikey";
+const CLAUDE_CONSOLE = "https://platform.claude.com";
+const OPENAI_KEYS = "https://platform.openai.com/api-keys";
+
+/** AI 공급자별 안내 */
+const AI_INFO: Record<AiProvider, { cost: string; placeholder: string; link: string; linkLabel: string; steps: string[] }> = {
+  gemini: {
+    cost: "무료로 시작할 수 있어요",
+    placeholder: "AQ.… 또는 AIza… 로 시작",
+    link: AI_STUDIO,
+    linkLabel: "구글 AI 스튜디오 열기",
+    steps: [
+      "구글 계정으로 AI 스튜디오에 들어가 'API 키 만들기'를 눌러요. 요즘 키는 AQ.로, 예전 키는 AIza로 시작해요.",
+      "결제 계정을 연결하지 않은 프로젝트로 만들면 한도를 넘어도 요금이 생기지 않아요.",
+      "무료 한도는 미국 태평양 시간 자정(한국 오후 4~5시)에 다시 채워져요.",
+    ],
+  },
+  claude: {
+    cost: "유료 (크레딧 충전 필요)",
+    placeholder: "sk-ant-… 로 시작",
+    link: CLAUDE_CONSOLE,
+    linkLabel: "Claude 개발자 콘솔 열기",
+    steps: [
+      "Claude 개발자 콘솔(Anthropic)에 가입하고 결제 메뉴에서 크레딧을 충전해요.",
+      "API 키 메뉴에서 새 키를 만들어요. 키는 만들 때 한 번만 보이니 바로 복사해요.",
+      "학생들과 함께 쓸 키라면 콘솔에서 사용 한도(월 한도)를 꼭 정해 두세요.",
+    ],
+  },
+  openai: {
+    cost: "유료 (크레딧 충전 필요)",
+    placeholder: "sk-… 또는 sk-proj-… 로 시작",
+    link: OPENAI_KEYS,
+    linkLabel: "OpenAI 플랫폼 열기",
+    steps: [
+      "OpenAI 플랫폼에 가입하고 결제(Billing) 메뉴에서 크레딧을 충전해요. ChatGPT 구독과는 따로예요.",
+      "API keys 메뉴에서 새 키를 만들어요. 키는 만들 때 한 번만 보이니 바로 복사해요.",
+      "학생들과 함께 쓸 키라면 사용 한도(Limits)를 꼭 정해 두세요.",
+    ],
+  },
+};
 const PURPOSE =
   "초등학교 과학 수업에서 학생이 학교 식물을 사진으로 관찰하고, 국립수목원 식물도감 공식 정보를 조회해 교육과정과 연결된 관찰 기록을 작성하는 비영리 교육용 웹앱에 활용합니다.";
 
@@ -30,12 +70,14 @@ function Settings() {
   const conn = useConnection();
 
   const [dataKey, setDataKey] = useState("");
-  const [geminiKey, setGeminiKey] = useState("");
+  const [provider, setProvider] = useState<AiProvider>("gemini");
+  const [aiKeys, setAiKeys] = useState<Record<AiProvider, string>>({ gemini: "", claude: "", openai: "" });
   const [persist, setPersist] = useState(true);
   const [showData, setShowData] = useState(false);
-  const [showGemini, setShowGemini] = useState(false);
+  const [showAi, setShowAi] = useState(false);
   const [dataCheck, setDataCheck] = useState<Check>({ state: "idle" });
-  const [geminiCheck, setGeminiCheck] = useState<Check>({ state: "idle" });
+  const [aiCheck, setAiCheck] = useState<Check>({ state: "idle" });
+  const [aiNote, setAiNote] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
   const [grade, setGrade] = useState<GradeBand>("3-4");
   const [hadKey, setHadKey] = useState(false);
@@ -44,17 +86,46 @@ function Settings() {
   useEffect(() => {
     const k = loadKeys();
     setDataKey(k.dataKey ?? "");
-    setGeminiKey(k.geminiKey ?? "");
+    setProvider(activeProvider(k));
+    setAiKeys({ gemini: k.geminiKey ?? "", claude: k.claudeKey ?? "", openai: k.openaiKey ?? "" });
     setHadKey(Boolean(k.dataKey));
-    setPersist(isPersisted() || !(k.dataKey || k.geminiKey));
+    setPersist(isPersisted() || !(k.dataKey || k.geminiKey || k.claudeKey || k.openaiKey));
     setGrade(loadGrade());
   }, []);
 
   const dataInfo = normalizeDataKey(dataKey);
+  const aiKey = aiKeys[provider];
+  const allKeys = (): Keys => ({
+    dataKey,
+    aiProvider: provider,
+    geminiKey: aiKeys.gemini,
+    claudeKey: aiKeys.claude,
+    openaiKey: aiKeys.openai,
+  });
+
+  /** 키를 붙여 넣으면 모양을 보고 공급자를 알아서 맞춘다 */
+  function onAiKey(v: string) {
+    setAiCheck({ state: "idle" });
+    const guess = detectProvider(v);
+    if (guess && guess !== provider) {
+      setAiKeys((a) => ({ ...a, [guess]: v }));
+      setProvider(guess);
+      setAiNote(`✓ ${AI_NAME[guess]} 키 같아요. ${AI_NAME[guess]}로 바꿨어요.`);
+    } else {
+      setAiKeys((a) => ({ ...a, [provider]: v }));
+      setAiNote(null);
+    }
+  }
+
+  function pickProvider(p: AiProvider) {
+    setProvider(p);
+    setAiCheck({ state: "idle" });
+    setAiNote(null);
+  }
 
   /** 입력란의 값으로 실제 호출을 한 번 해 본다 (저장 전에도 가능) */
-  async function check(target: "data" | "gemini", keys: Keys = { dataKey, geminiKey }) {
-    const set = target === "data" ? setDataCheck : setGeminiCheck;
+  async function check(target: "data" | "ai", keys: Keys = allKeys()) {
+    const set = target === "data" ? setDataCheck : setAiCheck;
     set({ state: "busy" });
     try {
       const res = await api(`/api/check?target=${target}`, {}, keys);
@@ -68,7 +139,7 @@ function Settings() {
               ? "강사 공유 키로 연결됨"
               : target === "data"
                 ? `국립수목원 연결 성공! (시험 검색: ${j.sample ?? "소나무"})`
-                : `제미나이 연결 성공!${j.model ? ` (모델: ${j.model})` : ""}`,
+                : `${AI_NAME[(j.provider as AiProvider) ?? provider]} 연결 성공!${j.model ? ` (모델: ${j.model})` : ""}`,
         });
       } else {
         set({ state: "bad", message: j.message ?? "연결 실패", keyProblem: Boolean(j.keyProblem) });
@@ -80,14 +151,14 @@ function Settings() {
 
   /** 저장하고, 넣은 키는 바로 연결 확인까지 */
   async function save() {
-    const ok = saveKeys({ dataKey, geminiKey }, persist);
-    const clean = { dataKey: dataInfo.key, geminiKey: geminiKey.trim() };
-    setDataKey(clean.dataKey);
+    const keys = allKeys();
+    const ok = saveKeys(keys, persist);
+    setDataKey(dataInfo.key);
     setSaved(ok ? (persist ? "이 기기에 저장했어요." : "이번 사용만 적용했어요. 탭을 닫으면 사라져요.") : "이 브라우저는 저장을 막고 있어요(사생활 보호 창 등). 일반 창에서 다시 해 주세요.");
-    setHadKey(Boolean(clean.dataKey));
+    setHadKey(Boolean(dataInfo.key));
     const jobs: Promise<void>[] = [];
-    if (clean.dataKey) jobs.push(check("data", clean));
-    if (clean.geminiKey) jobs.push(check("gemini", clean));
+    if (dataInfo.key) jobs.push(check("data", keys));
+    if (normalizeAiKey(aiKey)) jobs.push(check("ai", keys));
     await Promise.all(jobs);
   }
 
@@ -95,9 +166,9 @@ function Settings() {
     if (!confirm("이 기기에서 키를 모두 지울까요?")) return;
     clearKeys();
     setDataKey("");
-    setGeminiKey("");
+    setAiKeys({ gemini: "", claude: "", openai: "" });
     setDataCheck({ state: "idle" });
-    setGeminiCheck({ state: "idle" });
+    setAiCheck({ state: "idle" });
     setHadKey(false);
     setSaved("지웠어요.");
   }
@@ -117,7 +188,7 @@ function Settings() {
 
   const ready =
     (dataCheck.state === "ok" || (conn.ready && conn.data && dataCheck.state !== "bad")) &&
-    (geminiCheck.state === "ok" || (conn.ready && conn.gemini && geminiCheck.state !== "bad"));
+    (aiCheck.state === "ok" || (conn.ready && conn.ai && aiCheck.state !== "bad"));
 
   return (
     <>
@@ -136,10 +207,10 @@ function Settings() {
       <div className="card">
         <h2>⚙️ 내 키로 연결하기</h2>
         <p className="small" style={{ margin: 0 }}>
-          이 앱은 <strong>쓰는 사람마다 자기 키</strong>를 넣어 써요. 키는 <strong>이 기기의 브라우저</strong>에만 저장되고, 요청할 때만 앱 서버를 거쳐 국립수목원·제미나이로 전달돼요. 서버는 키를 저장하거나 기록하지 않아요.
+          이 앱은 <strong>쓰는 사람마다 자기 키</strong>를 넣어 써요. 키는 <strong>이 기기의 브라우저</strong>에만 저장되고, 요청할 때만 앱 서버를 거쳐 국립수목원과 내가 고른 AI 회사로 전달돼요. 서버는 키를 저장하거나 기록하지 않아요.
         </p>
         <ol className="steps-list">
-          <li><strong>키 두 개 받기</strong> — 공공데이터포털·구글 AI 스튜디오에서 무료로 (10분)</li>
+          <li><strong>키 두 개 받기</strong> — 공공데이터포털 키 + AI 키(제미나이·클로드·GPT 중 하나)</li>
           <li><strong>붙여 넣기</strong> — 아래 칸에</li>
           <li><strong>저장하고 연결 확인</strong> — 초록 글씨가 나오면 끝</li>
         </ol>
@@ -204,31 +275,41 @@ function Settings() {
         )}
       </div>
 
-      {/* 2. 제미나이 — 선택 */}
+      {/* 2. AI — 꼭 필요 */}
       <div className="card">
-        <h2>2. 제미나이 API 키 <span className="badge official">꼭 필요</span></h2>
+        <h2>2. AI 키 <span className="badge official">꼭 필요</span></h2>
         <p className="muted small" style={{ marginTop: -4 }}>
-          <strong>사진을 보고 어떤 식물인지</strong> 후보를 알려 주는 AI예요. 이 앱의 핵심 기능이에요. 공식 정보를 학년에 맞는 쉬운 말로 풀어 주기도 해요.
+          <strong>사진을 보고 어떤 식물인지</strong> 후보를 알려 주고, 국립수목원 공식 정보를 학년 눈높이로 풀어 줘요. 아래 셋 중 하나를 골라 그 회사의 키를 넣어요.
         </p>
-        <label className="field">
-          <span>구글 AI 스튜디오에서 만든 키</span>
+        <div className="seg seg3" role="tablist" aria-label="AI 고르기">
+          {AI_PROVIDERS.map((p) => (
+            <button key={p} role="tab" aria-selected={provider === p} className={provider === p ? "on" : ""} onClick={() => pickProvider(p)}>
+              {AI_NAME[p]}
+              <small>{AI_MAKER[p]} · {AI_INFO[p].cost}</small>
+              {aiKeys[p] && <small className="has-key">키 있음 ✓</small>}
+            </button>
+          ))}
+        </div>
+        <label className="field" style={{ marginTop: 12 }}>
+          <span>{AI_NAME[provider]} API 키</span>
           <div className="row">
-            <input className="input" style={{ flex: 1 }} type={showGemini ? "text" : "password"} autoComplete="off" spellCheck={false} value={geminiKey} onChange={(e) => { setGeminiKey(e.target.value); setGeminiCheck({ state: "idle" }); }} placeholder="AQ.… 또는 AIza… 로 시작" />
-            <button className="btn btn-sm" type="button" onClick={() => setShowGemini((v) => !v)}>{showGemini ? "가리기" : "보기"}</button>
+            <input className="input" style={{ flex: 1 }} type={showAi ? "text" : "password"} autoComplete="off" spellCheck={false} value={aiKey} onChange={(e) => onAiKey(e.target.value)} placeholder={AI_INFO[provider].placeholder} aria-label={`${AI_NAME[provider]} API 키`} />
+            <button className="btn btn-sm" type="button" onClick={() => setShowAi((v) => !v)}>{showAi ? "가리기" : "보기"}</button>
           </div>
         </label>
+        {aiNote && <p className="small ok-text">{aiNote}</p>}
         <div className="row">
-          <button className="btn btn-sm" type="button" disabled={!geminiKey.trim() || geminiCheck.state === "busy"} onClick={() => check("gemini")}>{geminiCheck.state === "busy" ? "확인 중…" : "연결 확인"}</button>
-          {geminiCheck.state === "ok" && <span className="badge official">✓ {geminiCheck.message}</span>}
+          <button className="btn btn-sm" type="button" disabled={!normalizeAiKey(aiKey) || aiCheck.state === "busy"} onClick={() => check("ai")}>{aiCheck.state === "busy" ? "확인 중…" : "연결 확인"}</button>
+          {aiCheck.state === "ok" && <span className="badge official">✓ {aiCheck.message}</span>}
         </div>
-        {geminiCheck.state === "bad" && <div className="alert err" style={{ marginTop: 10 }}>✗ {geminiCheck.message}</div>}
-        <details className="guide" style={{ marginTop: 10 }}>
-          <summary>키 받는 방법과 주의</summary>
+        {aiCheck.state === "bad" && <div className="alert err" style={{ marginTop: 10 }}>✗ {aiCheck.message}</div>}
+        <details className="guide" style={{ marginTop: 10 }} open={!aiKey}>
+          <summary>{AI_NAME[provider]} 키 받는 방법</summary>
           <ol>
-            <li>구글 AI 스튜디오에서 API 키를 만들어요. <a href={AI_STUDIO} target="_blank" rel="noreferrer">AI 스튜디오 열기 ↗</a> 요즘 만든 키는 <strong>AQ.</strong>으로, 예전 키는 <strong>AIza</strong>로 시작해요. 둘 다 쓸 수 있어요.</li>
-            <li><strong>결제 계정을 연결하지 않은 프로젝트</strong>로 만들면 한도를 넘어도 요금이 생기지 않아요.</li>
-            <li>무료 한도는 미국 태평양 시간 자정(한국 오후 4~5시)에 다시 채워져요.</li>
+            <li><a href={AI_INFO[provider].link} target="_blank" rel="noreferrer">{AI_INFO[provider].linkLabel} ↗</a></li>
+            {AI_INFO[provider].steps.map((t, i) => <li key={i}>{t}</li>)}
           </ol>
+          <p className="small muted" style={{ margin: "8px 0 0" }}>세 회사 키를 모두 저장해 둘 수 있어요. 지금 고른 AI({AI_NAME[provider]})의 키를 써요.</p>
         </details>
       </div>
 
@@ -251,8 +332,8 @@ function Settings() {
           <button className={`chip ${!persist ? "on" : ""}`} onClick={() => setPersist(false)}>이번만 사용 (공용 컴퓨터)</button>
         </div>
         <div className="stack" style={{ marginTop: 12 }}>
-          <button className="btn btn-primary" onClick={save} disabled={!dataInfo.key && !geminiKey.trim()}>저장하고 연결 확인</button>
-          {(dataInfo.key ? !geminiKey.trim() : Boolean(geminiKey.trim())) && <p className="small warn-text" style={{ margin: 0 }}>키 두 개를 모두 넣어야 사진으로 식물을 알아볼 수 있어요.</p>}
+          <button className="btn btn-primary" onClick={save} disabled={!dataInfo.key && !normalizeAiKey(aiKey)}>저장하고 연결 확인</button>
+          {Boolean(dataInfo.key) !== Boolean(normalizeAiKey(aiKey)) && <p className="small warn-text" style={{ margin: 0 }}>공공데이터포털 키와 AI 키를 모두 넣어야 사진으로 식물을 알아볼 수 있어요.</p>}
           {saved && <div className="alert ok">{saved}</div>}
           {ready && saved && (
             <Link href="/" className="btn btn-ai">🌿 준비 끝! 식물 찾으러 가기 →</Link>

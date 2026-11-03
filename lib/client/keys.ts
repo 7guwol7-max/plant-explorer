@@ -3,14 +3,24 @@
  * ─────────────────────────────────────────────
  * 이 앱은 '쓰는 사람마다 자기 키'를 넣는 구조다.
  * - 공공데이터포털 인증키: 꼭 필요 (국립수목원 공식 정보)
- * - 제미나이 키: 있으면 좋음 (사진으로 후보 찾기, 쉬운 설명). 없으면 이름으로 찾기로 진행
+ * - AI 키: 꼭 필요 (사진으로 식물 알아보기, 학년 눈높이 풀이). 제미나이·클로드·GPT 중 하나를 골라 그 키를 넣는다
+ *   세 회사 키를 모두 저장해 둘 수 있고, aiProvider 가 지금 쓰는 쪽
  * - "이 기기에 저장" → localStorage, "이번만 사용" → sessionStorage
  * - 모든 /api 호출은 api() 를 거쳐 헤더에 키를 싣는다
  * - 401 NO_DATA_KEY 이면 설정 화면으로 보낸다 (제미나이 키가 없는 것은 각 화면이 부드럽게 처리)
  */
-import { normalizeDataKey, normalizeGeminiKey } from "@/lib/datakey";
+import { normalizeDataKey } from "@/lib/datakey";
+import { AI_PROVIDERS, isAiProvider, normalizeAiKey, type AiProvider } from "@/lib/ai";
 
-export type Keys = { dataKey?: string; geminiKey?: string };
+export type Keys = { dataKey?: string; aiProvider?: AiProvider; geminiKey?: string; claudeKey?: string; openaiKey?: string };
+export const KEY_FIELD = { gemini: "geminiKey", claude: "claudeKey", openai: "openaiKey" } as const;
+
+/** 지금 쓰는 AI 공급자 (정하지 않았으면 키가 있는 첫 공급자, 그것도 없으면 제미나이) */
+export function activeProvider(k: Keys): AiProvider {
+  if (isAiProvider(k.aiProvider)) return k.aiProvider;
+  return AI_PROVIDERS.find((p) => k[KEY_FIELD[p]]) ?? "gemini";
+}
+export const aiKeyOf = (k: Keys, p: AiProvider = activeProvider(k)) => k[KEY_FIELD[p]] ?? "";
 const K = "keys";
 export const KEYS_EVENT = "keys-changed";
 
@@ -36,8 +46,14 @@ export function isPersisted(): boolean {
 }
 
 /** 저장 전에 키 모양을 맞춘다 (인코딩 키·주소 통째로 붙여 넣어도 디코딩 키로) */
-export function cleanKeys(keys: Keys): Required<Keys> {
-  return { dataKey: normalizeDataKey(keys.dataKey).key, geminiKey: normalizeGeminiKey(keys.geminiKey) };
+export function cleanKeys(keys: Keys): Keys {
+  return {
+    dataKey: normalizeDataKey(keys.dataKey).key,
+    aiProvider: activeProvider(keys),
+    geminiKey: normalizeAiKey(keys.geminiKey),
+    claudeKey: normalizeAiKey(keys.claudeKey),
+    openaiKey: normalizeAiKey(keys.openaiKey),
+  };
 }
 
 export function saveKeys(keys: Keys, persist: boolean): boolean {
@@ -70,7 +86,8 @@ export function clearKeys() {
 
 export function keyStatus() {
   const k = loadKeys();
-  return { hasData: Boolean(k.dataKey), hasGemini: Boolean(k.geminiKey) };
+  const provider = activeProvider(k);
+  return { hasData: Boolean(k.dataKey), hasAi: Boolean(aiKeyOf(k, provider)), provider };
 }
 
 /** 키 헤더를 붙인 fetch. 공공데이터포털 키가 아예 없으면 설정 화면으로 이동시킨다. */
@@ -78,7 +95,8 @@ export async function api(path: string, init: RequestInit = {}, overrideKeys?: K
   const k = overrideKeys ? cleanKeys(overrideKeys) : loadKeys();
   const headers = new Headers(init.headers ?? {});
   headers.set("x-data-key", k.dataKey ?? "");
-  headers.set("x-gemini-key", k.geminiKey ?? "");
+  headers.set("x-ai-provider", activeProvider(k));
+  headers.set("x-ai-key", aiKeyOf(k));
   const res = await fetch(path, { ...init, headers });
   if (res.status === 401 && !overrideKeys) {
     const j = await res.clone().json().catch(() => ({}));
@@ -99,7 +117,7 @@ export class ApiError extends Error {
 
 export async function toApiError(res: Response): Promise<ApiError> {
   const j = await res.json().catch(() => ({}));
-  const needs = ["BAD_DATA_KEY", "NO_DATA_KEY", "NO_GEMINI_KEY", "BAD_GEMINI_KEY"].includes(j?.error);
+  const needs = ["BAD_DATA_KEY", "NO_DATA_KEY", "NO_AI_KEY", "BAD_AI_KEY"].includes(j?.error);
   const message = j?.message
     ? String(j.message)
     : j?.error === "API_ERROR"

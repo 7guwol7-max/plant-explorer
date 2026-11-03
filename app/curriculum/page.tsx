@@ -27,6 +27,7 @@ export default function CurriculumPage() {
                 <code className="inline">{s.code}</code>
               </div>
               <blockquote className="official-text">{s.officialText}</blockquote>
+              <p className="small" style={{ margin: "0 0 8px" }}><strong>학생 화면 문장</strong> “{s.kidText}”</p>
               {s.commentary && <p className="small"><strong>성취기준 해설</strong><br />{s.commentary}</p>}
               {s.considerations.length > 0 && (
                 <div className="small"><strong>적용 시 고려 사항</strong><ul>{s.considerations.map((c, i) => <li key={i}>{c}</li>)}</ul></div>

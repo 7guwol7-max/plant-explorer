@@ -1,21 +1,33 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Steps from "./Steps";
 import ErrorAlert from "./ErrorAlert";
 import CurriculumLinks from "./CurriculumLinks";
+import ObservationDrawings from "./ObservationDrawings";
 import { api, ApiError, toApiError } from "@/lib/client/keys";
 import { useConnection } from "@/lib/client/useConnection";
 import { loadDraft, clearDraft, type Draft } from "@/lib/client/draft";
-import { saveCard, newCardId, type Card } from "@/lib/client/cards";
+import { saveCard, newCardId, type Card, type Drawing } from "@/lib/client/cards";
 import { shrinkDataUrl } from "@/lib/client/image";
-import { loadGrade, saveGrade } from "@/lib/client/prefs";
+import { loadGrade, saveGrade, useRole } from "@/lib/client/prefs";
 import { OFFICIAL_FIELDS, SOURCE_NAME } from "@/lib/fields";
-import { linkCurriculum, DEFAULT_GRADE, type GradeBand } from "@/lib/curriculum";
+import { linkCurriculum, DEFAULT_GRADE, GRADE_LABEL, type GradeBand } from "@/lib/curriculum";
+import { AI_NAME } from "@/lib/ai";
 
 type Detail = Record<string, string> & { mock?: boolean };
-type Explain = { kidSummary: string; observeQuestions: string[]; compareHint: string; mock?: boolean };
+type Explain = {
+  kidSummary: string;
+  sections?: { title: string; text: string }[];
+  fieldsEasy?: { field: string; easy: string }[];
+  glossary?: { term: string; meaning: string }[];
+  observeQuestions: string[];
+  compareHint: string;
+  wonder?: string;
+  mock?: boolean;
+  model?: string;
+};
 type Err = { message: string; needsSettings?: boolean } | null;
 
 const DEFAULT_QUESTIONS = [
@@ -24,10 +36,19 @@ const DEFAULT_QUESTIONS = [
   "이 식물이 자라는 곳은 어떤 환경인가요? (햇빛, 물, 흙)",
 ];
 
-/** 화면 ③ 확인 + 📚 교과서 연결 + ④ 기록 */
+const SECTION_ICON: Record<string, string> = { 생김새: "🌿", "사는 곳": "🏞️", "특별한 점": "✨", "우리 생활과 함께": "🏠", "지키는 방법": "🛡️" };
+
+/**
+ * 화면 ③ 확인 + 📚 교과서 연결 + ④ 기록
+ * - 공식 정보: 국립수목원 원문 그대로 + (AI) 학년 눈높이 풀이를 항목마다 나란히
+ *   학생 보기는 쉬운 풀이를 먼저, 선생님 보기는 원문을 먼저 보여 준다
+ * - 쉬운 설명 탭: 소개 · 주제별 설명 · 낱말 풀이 · 비교 힌트 · 더 궁금한 점
+ */
 export default function PlantDetail({ no }: { no: string }) {
   const router = useRouter();
   const conn = useConnection();
+  const role = useRole();
+  const teacher = role === "teacher";
   const [draft, setDraft] = useState<Draft>({});
   const [detail, setDetail] = useState<Detail | null>(null);
   const [notFound, setNotFound] = useState(false);
@@ -37,11 +58,13 @@ export default function PlantDetail({ no }: { no: string }) {
   const [expBusy, setExpBusy] = useState(false);
   const [expErr, setExpErr] = useState<Err>(null);
   const [grade, setGrade] = useState<GradeBand>(DEFAULT_GRADE);
+  const autoAsked = useRef(false);
 
   // 기록(④)
   const [verified, setVerified] = useState<"일치" | "불일치" | "모름">("모름");
   const [answers, setAnswers] = useState<string[]>(["", "", ""]);
   const [curriAnswers, setCurriAnswers] = useState<Record<string, string>>({});
+  const [drawings, setDrawings] = useState<Drawing[]>([]);
   const [newLearning, setNewLearning] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
@@ -66,16 +89,24 @@ export default function PlantDetail({ no }: { no: string }) {
     [detail, grade, draft.place, draft.observation],
   );
 
+  // 학생 보기에서는 공식 정보가 오면 학년 눈높이 풀이를 바로 불러온다
+  useEffect(() => {
+    if (!detail || !conn.ready || !conn.ai || teacher || autoAsked.current) return;
+    autoAsked.current = true;
+    void loadExplain();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detail, conn.ready, conn.ai, teacher]);
+
   function changeGrade(g: GradeBand) {
     setGrade(g);
     saveGrade(g);
-    setExp(null); // 학년이 바뀌면 쉬운 설명도 그 학년 말로 다시
+    setExp(null); // 학년이 바뀌면 그 학년 말로 다시
     setExpErr(null);
-    if (tab === "easy") void loadExplain(g, true);
+    if (exp || tab === "easy") void loadExplain(g, true);
   }
 
   async function loadExplain(g: GradeBand = grade, force = false) {
-    if ((exp && !force) || !detail || !conn.gemini) return;
+    if ((exp && !force) || !detail || !conn.ai) return;
     setExpBusy(true);
     setExpErr(null);
     try {
@@ -90,12 +121,13 @@ export default function PlantDetail({ no }: { no: string }) {
       if (!res.ok) throw await toApiError(res);
       setExp(await res.json());
     } catch (e) {
-      setExpErr(e instanceof ApiError ? { message: e.message, needsSettings: e.needsSettings } : { message: e instanceof Error ? e.message : "설명 생성 실패" });
+      setExpErr(e instanceof ApiError ? { message: e.message, needsSettings: e.needsSettings } : { message: e instanceof Error ? e.message : "설명 만들기 실패" });
     } finally {
       setExpBusy(false);
     }
   }
 
+  const easyOf = (k: string) => exp?.fieldsEasy?.find((f) => f.field === k)?.easy;
   const questions = exp?.observeQuestions?.length ? exp.observeQuestions.slice(0, 3) : DEFAULT_QUESTIONS;
 
   async function save() {
@@ -125,9 +157,11 @@ export default function PlantDetail({ no }: { no: string }) {
           subject: s.subject,
           unit: s.unit,
           officialText: s.officialText,
+          kidText: s.kidText,
           activity: s.activity,
           answer: curriAnswers[s.code] ?? "",
         })),
+        drawings: await Promise.all(drawings.map(async (d) => ({ ...d, image: await shrinkDataUrl(d.image, 800, 0.72) }))),
       };
       const r = saveCard(card);
       if (!r.ok) { setSaveMsg(r.message ?? "저장 실패"); return; }
@@ -141,6 +175,9 @@ export default function PlantDetail({ no }: { no: string }) {
   if (notFound) return (<><Steps current={3} /><div className="card"><h2>도감에 없어요</h2><p>국립수목원 식물도감에서 이 번호의 정보를 찾지 못했어요.</p><button className="btn" onClick={() => router.back()}>← 돌아가기</button></div></>);
   if (err) return (<><Steps current={3} /><ErrorAlert {...err} /><button className="btn" onClick={() => router.back()}>← 돌아가기</button></>);
   if (!detail) return (<><Steps current={3} /><div className="card"><p>국립수목원에서 공식 정보를 가져오는 중…</p></div></>);
+
+  const fields = OFFICIAL_FIELDS.filter(([k]) => detail[k]);
+  const aiLabel = conn.ready && conn.ai && !conn.mock ? AI_NAME[conn.provider] : "AI";
 
   return (
     <>
@@ -168,38 +205,74 @@ export default function PlantDetail({ no }: { no: string }) {
 
       <div className="card">
         <div className="tabs">
-          <button className={tab === "official" ? "on" : ""} onClick={() => setTab("official")}>📗 공식 정보 (원문)</button>
-          <button className={`ai ${tab === "easy" ? "on" : ""}`} onClick={() => { setTab("easy"); void loadExplain(); }}>🤖 쉬운 설명</button>
+          <button className={tab === "official" ? "on" : ""} onClick={() => setTab("official")}>📗 공식 정보</button>
+          <button className={`ai ${tab === "easy" ? "on" : ""}`} onClick={() => { setTab("easy"); void loadExplain(); }}>🧒 {GRADE_LABEL[grade]} 눈높이 설명</button>
         </div>
+
+        {conn.ready && !conn.ai && (
+          <div className="alert warn">
+            AI 키를 넣으면 국립수목원 공식 정보를 {GRADE_LABEL[grade]} 눈높이로 풀어 줘요. <Link href="/settings" className="link">설정에서 넣기 →</Link>
+          </div>
+        )}
+        {expBusy && <p className="muted" style={{ marginTop: 0 }}>🧒 {aiLabel}가 {GRADE_LABEL[grade]} 눈높이로 풀어 쓰는 중…</p>}
+        {expErr && <ErrorAlert {...expErr} />}
 
         {tab === "official" && (
           <>
-            {OFFICIAL_FIELDS.filter(([k]) => detail[k]).map(([k, label], i) => (
-              <details key={k} className="field-block" open={i < 2}>
-                <summary>{label}</summary>
-                <p>{detail[k]}</p>
-              </details>
-            ))}
-            {OFFICIAL_FIELDS.every(([k]) => !detail[k]) && <p className="muted">이 식물은 도감에 설명 항목이 비어 있어요.</p>}
-            <div className="source">출처: {detail.source ?? SOURCE_NAME} · 원문을 수정하지 않고 그대로 보여줘요</div>
+            {conn.ai && !exp && !expBusy && (
+              <button className="btn btn-sm btn-ai-soft" style={{ marginBottom: 10 }} onClick={() => loadExplain()}>🧒 {GRADE_LABEL[grade]} 눈높이 풀이 함께 보기</button>
+            )}
+            {fields.map(([k, label], i) => {
+              const easy = easyOf(k);
+              const original = (
+                <div className={easy && !teacher ? "orig muted-orig" : "orig"}>
+                  {easy && !teacher && <span className="orig-label">📗 국립수목원 원문</span>}
+                  <p>{detail[k]}</p>
+                </div>
+              );
+              const easyBox = easy && (
+                <div className="easy-box">
+                  <span className="easy-label">🧒 {GRADE_LABEL[grade]} 눈높이로 풀면 <em>({aiLabel}가 쓴 글)</em></span>
+                  <p>{easy}</p>
+                </div>
+              );
+              return (
+                <details key={k} className="field-block" open={i < 2 || Boolean(easy)}>
+                  <summary>{label}</summary>
+                  {teacher ? <>{original}{easyBox}</> : <>{easyBox}{original}</>}
+                </details>
+              );
+            })}
+            {fields.length === 0 && <p className="muted">이 식물은 도감에 설명 항목이 비어 있어요.</p>}
+            {exp?.glossary?.length ? <Glossary items={exp.glossary} /> : null}
+            <div className="source">출처: {detail.source ?? SOURCE_NAME} · 원문은 고치지 않고 그대로 보여 줘요{exp ? ` · 눈높이 풀이는 ${aiLabel}가 원문을 바꿔 쓴 글이라 꼭 원문과 비교해요` : ""}</div>
           </>
         )}
 
         {tab === "easy" && (
           <>
-            <span className="badge ai">AI가 공식 정보를 바꿔 쓴 글 · 원문과 꼭 비교해요</span>
-            {conn.ready && !conn.gemini && (
-              <div className="alert warn" style={{ marginTop: 10 }}>
-                제미나이 키를 넣으면 AI가 공식 정보를 쉬운 말로 풀어 주고, 이 식물에 맞는 관찰 질문도 만들어 줘요. <Link href="/settings" className="link">설정에서 넣기 →</Link>
-              </div>
-            )}
-            {expBusy && <p className="muted" style={{ marginTop: 10 }}>AI가 쉽게 풀어 쓰는 중…</p>}
-            {expErr && <div style={{ marginTop: 10 }}><ErrorAlert {...expErr} /></div>}
+            <span className="badge ai">{aiLabel}가 공식 정보를 {GRADE_LABEL[grade]} 눈높이로 바꿔 쓴 글 · 원문과 꼭 비교해요</span>
             {exp && (
-              <div className="stack" style={{ marginTop: 10 }}>
+              <div className="stack" style={{ marginTop: 12 }}>
                 {exp.mock && <div className="alert warn">연습 모드: 연습용 설명이에요.</div>}
-                <p style={{ fontSize: 17 }}>{exp.kidSummary}</p>
-                <div><strong>비슷한 식물과 구별하려면</strong><p className="small" style={{ margin: "4px 0 0" }}>{exp.compareHint}</p></div>
+                <p className="kid-summary">{exp.kidSummary}</p>
+                {exp.sections?.map((s, i) => (
+                  <div key={i} className="easy-section">
+                    <strong>{SECTION_ICON[s.title] ?? "📌"} {s.title}</strong>
+                    <p>{s.text}</p>
+                  </div>
+                ))}
+                {exp.glossary?.length ? <Glossary items={exp.glossary} /> : null}
+                <div className="easy-section">
+                  <strong>🔍 비슷한 식물과 구별하려면</strong>
+                  <p>{exp.compareHint}</p>
+                </div>
+                {exp.wonder && (
+                  <div className="easy-section wonder">
+                    <strong>💡 더 알아볼까요?</strong>
+                    <p>{exp.wonder}</p>
+                  </div>
+                )}
               </div>
             )}
           </>
@@ -209,6 +282,7 @@ export default function PlantDetail({ no }: { no: string }) {
       <CurriculumLinks
         links={links}
         grade={grade}
+        role={role}
         onGrade={changeGrade}
         answers={curriAnswers}
         onAnswer={(code, v) => setCurriAnswers((a) => ({ ...a, [code]: v }))}
@@ -225,8 +299,10 @@ export default function PlantDetail({ no }: { no: string }) {
           ))}
         </div>
 
+        <ObservationDrawings drawings={drawings} onChange={setDrawings} photo={draft.photo} />
+
         <h3>관찰 질문 {exp ? "(AI 제안)" : "(기본)"}</h3>
-        {!exp && conn.gemini && <p className="muted small">'쉬운 설명' 탭을 열면 이 식물과 교과서 내용에 맞는 질문을 AI가 제안해요.</p>}
+        {!exp && conn.ai && <p className="muted small">눈높이 설명을 열면 이 식물과 교과서 내용에 맞는 질문을 AI가 제안해요.</p>}
         {questions.map((q, i) => (
           <label className="field" key={i}>
             <span>{i + 1}. {q}</span>
@@ -241,8 +317,24 @@ export default function PlantDetail({ no }: { no: string }) {
 
         {saveMsg && <div className="alert err">{saveMsg}</div>}
         <button className="btn btn-primary" disabled={saving} onClick={save}>{saving ? "저장 중…" : "📒 나의 도감에 저장"}</button>
-        <p className="muted small" style={{ textAlign: "center", marginTop: 8 }}>교과서 연결 활동에 적은 내용도 함께 저장돼요.</p>
+        <p className="muted small" style={{ textAlign: "center", marginTop: 8 }}>관찰 그림과 교과서 연결 활동에 적은 내용도 함께 저장돼요.</p>
       </div>
     </>
+  );
+}
+
+function Glossary({ items }: { items: { term: string; meaning: string }[] }) {
+  return (
+    <div className="glossary">
+      <strong>📖 어려운 낱말 풀이</strong>
+      <dl>
+        {items.map((g, i) => (
+          <div key={i}>
+            <dt>{g.term}</dt>
+            <dd>{g.meaning}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
   );
 }

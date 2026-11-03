@@ -11,6 +11,7 @@
     "check-api": "node scripts/check-api.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.4.0",
     "fast-xml-parser": "^5.2.5",
     "next": "^15.5.28",
     "qrcode": "^1.5.4",

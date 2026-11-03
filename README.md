@@ -5,7 +5,11 @@
 - **휴대폰·태블릿**: 기본 카메라 앱으로 찍기 / 앨범에서 고르기 / 📋 붙여넣기 버튼 · 홈 화면에 추가하면 앱처럼 열림
 - **컴퓨터**: 웹캠 창으로 찍기 / 사진 파일 고르기 / 끌어다 놓기 / **Ctrl+V(⌘+V)로 캡처한 사진 바로 붙여넣기**(패들렛처럼) · 넓은 화면 배치
 - **사진 최대 3장**(전체·잎·꽃이나 열매)을 AI가 함께 보고 판단 → 이름을 몰라도 사진으로 알아보는 것이 주된 길
-- **쓰는 사람마다 자기 키**: 공공데이터포털 키·제미나이 키(둘 다 필수)를 각자 설정 화면에 넣으면 연동. 서버는 키를 저장하지 않음
+- **쓰는 사람마다 자기 키**: 공공데이터포털 키 + AI 키(제미나이·클로드·GPT 중 하나)를 각자 설정 화면에 넣으면 연동. 서버는 키를 저장하지 않음
+- **학년 눈높이**: 국립수목원 원문을 항목마다 1~2 / 3~4 / 5~6학년 말로 풀이 + 낱말 풀이 (원문은 그대로 함께 표시)
+- **학생 보기 / 선생님 보기**: 학생에게는 "우리 교과서에 이런 내용이 나와요"(학생 말), 선생님에게는 성취기준 원문·해설
+- **관찰 낱말 그림 도움말**: 잎 모양·잎맥·줄기 선택지마다 그림, 마우스를 올리면 큰 그림+설명, '그림으로 알아보기' 창
+- **관찰 그림**: 그림판(펜·지우개·글자·되돌리기·내 사진 위에 그리기) 또는 종이 그림 사진 올리기, 그림마다 설명 → 도감 카드에 저장
 - **👩‍🏫 선생님 모드**(머리글 오른쪽 위 버튼): 키 저장 → 학년 → 학급 QR 3단계, 칠판·TV에 QR 크게 띄우기
 - AI(제미나이)는 **후보를 제안**하는 도구, 국립수목원 API는 **공식 정보를 확인**하는 도구, 교육과정 연결은 **정해진 규칙**(AI 아님)
 
@@ -19,10 +23,15 @@
 3. **키 복사** — 마이페이지 → 개발계정 (https://www.data.go.kr/iim/api/selectAPIAcountView.do) → 서비스 클릭 → **일반 인증키** 복사
    - Encoding·Decoding 어느 쪽이든, 미리보기 주소를 통째로 붙여 넣어도 앱이 알아서 디코딩 키로 맞춤 (`lib/datakey.ts`)
 4. **앱의 ⚙️ 설정 → 붙여 넣기 → [저장하고 연결 확인]** → 초록 글씨가 나오면 끝
-5. **제미나이 키(필수)** — https://aistudio.google.com/apikey 에서 만들어 같은 화면에 넣기. 사진으로 어떤 식물인지 알아보는 핵심 기능 (없으면 발견 화면의 AI 버튼이 잠기고 설정으로 안내)
-   - 요즘 만든 키는 `AQ.`, 예전 키는 `AIza` 로 시작. 둘 다 같은 방식(x-goog-api-key 헤더)으로 동작
-   - 모델은 앱이 자동으로 고름: 구글이 모델을 은퇴시키거나(404) 바쁘거나(5xx) 한도(429)면 다음 모델로 넘어감 (`lib/server/gemini.ts` 의 `DEFAULT_MODELS`). 404 안내문에 대체 모델 이름이 있으면 그것도 시도
-   - `gemini-2.5-flash` 는 2026년 11월 현재 새 키로는 쓸 수 없음 → 기본 목록에서 뺌
+5. **AI 키(필수)** — 사진으로 어떤 식물인지 알아보는 핵심 기능. 셋 중 하나를 골라 그 회사 키를 넣기 (없으면 발견 화면의 AI 버튼이 잠기고 설정으로 안내)
+   | AI | 키 받는 곳 | 키 모양 | 비용 |
+   |---|---|---|---|
+   | 제미나이 (구글) | https://aistudio.google.com/apikey | `AQ.…` / `AIza…` | 무료 등급 있음 |
+   | 클로드 (Anthropic) | https://platform.claude.com | `sk-ant-…` | 유료(크레딧 충전) |
+   | GPT (OpenAI) | https://platform.openai.com/api-keys | `sk-…` / `sk-proj-…` | 유료(크레딧 충전) |
+   - 키를 붙여 넣으면 모양을 보고 공급자를 자동으로 맞춤. 세 회사 키를 모두 저장해 두고 골라 쓸 수 있음
+   - 제미나이·GPT 모델은 앱이 자동으로 고름: 은퇴(404)·혼잡(5xx)·한도(429)면 다음 모델로 (`lib/server/ai/chain.ts`). `gemini-2.5-flash` 는 새 키로 쓸 수 없어 기본 목록에서 뺌
+   - 클로드는 공식 SDK(`@anthropic-ai/sdk`)로 `claude-opus-5-5` 호출(`CLAUDE_MODEL` 로 변경 가능), 구조화 출력(json_schema), 안전 분류기 거절 시 서버 쪽 대체 모델(`fallbacks: "default"`)
 
 자주 막히는 곳 (앱이 결과코드별로 안내함):
 
@@ -38,14 +47,15 @@
 | 어디에 | 무엇이 | 비고 |
 |---|---|---|
 | 브라우저 저장소 (`keys`) | 공공데이터포털 키(디코딩으로 정리), 제미나이 키 | "이 기기에 저장"=localStorage, "이번만"=sessionStorage |
-| 요청 헤더 | `x-data-key`, `x-gemini-key` | `lib/client/keys.ts` 의 `api()` 가 붙임 |
+| 요청 헤더 | `x-data-key`, `x-ai-provider`, `x-ai-key` | `lib/client/keys.ts` 의 `api()` 가 붙임 |
 | 서버 함수 | `lib/server/keys.ts` 의 `getKeys(req)` | 헤더에서 읽어 외부 호출 후 버림, 저장·기록 없음 |
-| 서버 환경변수 | `DATA_GO_KR_KEY`, `GEMINI_API_KEY` | `ALLOW_SHARED_KEY=1` 일 때만, 헤더에 키가 없을 때 대신 사용 (강사 시연용) |
-| `/api/config` | `{ mock, sharedData, sharedGemini }` | 화면이 "키가 꼭 필요한지" 판단. 키 값은 보내지 않음 |
+| 서버 환경변수 | `DATA_GO_KR_KEY`, `AI_PROVIDER`, `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` | `ALLOW_SHARED_KEY=1` 일 때만, 헤더에 키가 없을 때 대신 사용 (강사 시연용) |
+| `/api/config` | `{ mock, sharedData, sharedAi, sharedAiProvider }` | 화면이 "키가 꼭 필요한지" 판단. 키 값은 보내지 않음 |
 
 - 공공데이터포털 키가 없으면 `401 NO_DATA_KEY` → 설정 화면으로 이동, 첫 화면에는 "처음 오셨나요?" 안내
 - 키가 틀리면 `401 BAD_DATA_KEY` + 결과코드별 안내문 + "키 설정 확인하기" 버튼
-- 제미나이 키가 없으면 발견 화면의 AI 버튼이 잠기고 "제미나이 키가 필요해요 → 설정" 안내 (이름 입력을 주된 길로 쓰지 않음)
+- AI 키가 없으면 발견 화면의 AI 버튼이 잠기고 "AI 키가 필요해요 → 설정" 안내 (이름 입력을 주된 길로 쓰지 않음)
+- AI 오류는 공급자와 상관없이 같은 종류로 안내: 키(→설정) / 결제·크레딧 / 한도 / 혼잡 / 거절
 - 캐시는 검색어·도감번호 기준(키와 무관, 24시간) → 한 반이 같은 식물을 찾아도 호출 1회. 단 '연결 확인'은 캐시를 건너뛰고 실제로 호출
 - 학급 기기 일괄 배포: 👩‍🏫 선생님 모드(`/teacher`)의 QR
   - 🔑 키까지 한 번에: 주소 `#k=…` 프래그먼트에 키+학년 (서버로 전송되지 않음). 학급 태블릿·학생 휴대폰용
@@ -69,14 +79,14 @@ npm run dev                      # http://localhost:3000
 
 ```
 ① 발견  /            사진 최대 3장(휴대폰 카메라·웹캠·파일·끌어 놓기·붙여넣기) + 장소 + 사전 관찰(잎 모양·잎맥·줄기)
-   ↓  POST /api/identify { images: [...] } (제미나이) → 후보 2~3종 {국명, 학명, 신뢰도, 근거}
+   ↓  POST /api/identify { images: [...] } (고른 AI) → 후보 2~3종 {국명, 학명, 신뢰도, 근거}
 ② 추정  /            후보 고르기 · 맞는 게 없으면 "사진 더 넣고 다시 묻기" / "AI에게 다시 묻기"
                       (이름 입력은 "이미 이름을 알고 있어요" 접힌 메뉴에만)
    ↓  GET /api/plants/search?q=국명 (국립수목원) → 도감번호  (0건이면 학명 속명으로 재검색)
 ③ 확인  /plant/[no]  GET /api/plants/detail?no= (국립수목원) → 형태·특징·생육환경·분포·유사종…
-                      POST /api/explain (제미나이) → 학년 맞춤 쉬운 설명 + 성취기준에 맞춘 관찰 질문
+                      POST /api/explain (고른 AI) → 학년 눈높이: 소개·주제별·항목별 풀이·낱말 풀이·관찰 질문·비교·더 궁금한 점
 📚 교과서 연결        lib/curriculum.ts (규칙) → 학년별 성취기준 원문 + 이어지는 까닭(국립수목원 원문 근거) + 해 볼 활동
-④ 기록  /plant/[no]  일치/불일치/모름 · 관찰 질문 답 · 교과서 활동 답 · 새로 알게 된 점 → 나의 도감 저장
+④ 기록  /plant/[no]  일치/불일치/모름 · 관찰 그림(그리기·종이 그림 올리기) · 관찰 질문 답 · 교과서 활동 답 · 새로 알게 된 점 → 나의 도감 저장
 📒 나의 도감 /my      카드 / 🗂️ 분류해 보기(관찰 기준·내가 정한 기준) / 📚 교과서별 모아 보기, 인쇄
 🔍 검색  /search      이름으로 찾는 작은 도감
 ⚙️ 설정  /settings    키 받는 방법·입력·연결 확인·학년·저장 방식
@@ -133,13 +143,15 @@ app/
   my/page.tsx                      📒 나의 도감 (카드·분류해 보기·교과서별)
   search/ settings/ teacher/ curriculum/
   api/config, api/check, api/plants/search, api/plants/detail, api/identify, api/explain
-data/curriculum.json               성취기준 원문 + 연결 규칙 + 활동 (교사가 고칠 수 있음)
+data/curriculum.json               성취기준 원문 + 학생용 문장(kidText) + 연결 규칙 + 활동 (교사가 고칠 수 있음)
 lib/datakey.ts                     공공데이터포털 키 정리 (인코딩/디코딩/주소 → 디코딩 키)
 lib/curriculum.ts                  교육과정 연결 계산 (순수 함수, 테스트 있음)
 lib/fields.ts                      국립수목원 항목 이름표
 lib/server/keys.ts                 헤더에서 키 읽기 (사용자별 키 구조의 핵심)
 lib/server/datagokr.ts             국립수목원 호출·XML→JSON·결과코드 안내·캐시·연습 모드
-lib/server/gemini.ts               제미나이 식별·설명 (JSON 스키마 강제, 성취기준 반영)
+lib/server/ai/                     AI 공급자: chain(모델 차례로)·gemini·claude(SDK)·openai·errors·tasks(식별·학년 눈높이 풀이)
+lib/ai.ts                          AI 공급자 이름·키 모양으로 공급자 알아보기
+lib/terms.ts                       관찰 낱말(잎 모양·잎맥·줄기) 설명 — 그림은 app/components/TermIcon.tsx
 lib/client/keys.ts                 브라우저 키 보관 + api() 공통 호출 + 오류 정리
 lib/client/useConnection.ts        내 키 + 서버 상태를 합친 연결 상태
 lib/client/{image,draft,cards,prefs,clipboard}.ts  사진 축소·웹캠 캡처, 작업 중 자료, 도감 카드, 학년, 붙여넣기

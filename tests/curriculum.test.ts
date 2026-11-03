@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeAll } from "vitest";
 import { CURRICULUM, GRADE_BANDS, findSentence, linkCurriculum, describeMatch, getStandard, isGradeBand } from "@/lib/curriculum";
 import { OFFICIAL_FIELDS } from "@/lib/fields";
-import { curriculumBlock } from "@/lib/server/gemini";
+import { curriculumBlock } from "@/lib/server/ai/tasks";
 
 const codes = (ls: { standard: { code: string } }[]) => ls.map((l) => l.standard.code);
 
@@ -18,6 +18,10 @@ describe("교육과정 자료(data/curriculum.json)", () => {
       expect(isGradeBand(s.gradeBand), s.code).toBe(true);
       expect(s.officialText.length, s.code).toBeGreaterThan(10);
       expect(s.activity.length, s.code).toBeGreaterThan(10);
+      // 학생용 문장: 있어야 하고, 코드·원문 말투(~할 수 있다.)를 쓰지 않는다
+      expect(s.kidText.length, s.code).toBeGreaterThan(10);
+      expect(s.kidText, s.code).not.toMatch(/\[|\]|할 수 있다\.|한다\.$/);
+      expect(s.kidText, s.code).not.toBe(s.officialText);
       expect(s.source.title, s.code).toMatch(/^\[별책\d+\]/);
       expect(describeMatch(s.match).length, `${s.code} 연결 조건 없음`).toBeGreaterThan(0);
       for (const f of s.match.fields ?? []) expect(fieldKeys, `${s.code} 의 ${f}`).toContain(f);
