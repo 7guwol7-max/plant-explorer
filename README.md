@@ -76,6 +76,7 @@ npm run dev                      # http://localhost:3000
 - 실제 모드(`MOCK=0`): 설정 화면에서 키 입력 → 저장하고 연결 확인
 - 받은 키로 실제 응답 확인: `npm run check-api` (또는 `node scripts/check-api.mjs <키>`) → `samples/real_*.xml` 저장
 - 테스트: `npm test` · 타입 검사: `npm run typecheck`
+- `vercel.json` 의 `regions: ["icn1"]` 로 서버 함수가 서울에서 돈다 → 이 저장소를 Fork 해서 Vercel 에 Import 하면 지역 설정을 따로 바꾸지 않아도 된다 (Hobby 무료 요금제도 지역 하나는 고를 수 있음)
 
 ## 3. 전체 흐름
 
