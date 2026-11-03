@@ -7,6 +7,7 @@
  * 같은 입력이면 언제나 같은 결과가 나온다 (AI를 쓰지 않음).
  */
 import raw from "@/data/curriculum.json";
+import extraRaw from "@/data/curriculum-extra.json";
 import { OFFICIAL_FIELDS, FIELD_SHORT } from "./fields";
 
 export type GradeBand = "1-2" | "3-4" | "5-6";
@@ -48,7 +49,88 @@ export type Standard = {
 
 export type CurriculumData = { basis: string; notice: string; standards: Standard[] };
 
-export const CURRICULUM = raw as CurriculumData;
+/* ───────── 선생님이 더하거나 고친 성취기준 (data/curriculum-extra.json) ───────── */
+const isStr = (v: unknown): v is string => typeof v === "string";
+const strList = (v: unknown): string[] => (Array.isArray(v) ? v.filter(isStr) : []);
+const matchOf = (v: unknown): Match => {
+  const m = (v && typeof v === "object" ? v : {}) as Record<string, unknown>;
+  const out: Match = {};
+  if (m.always === true) out.always = true;
+  for (const k of ["fields", "keywords", "places", "stems"] as const) {
+    const list = strList(m[k]);
+    if (list.length) out[k] = list;
+  }
+  return out;
+};
+
+/**
+ * 추가 파일의 항목 하나를 앱이 쓰는 모양으로 다듬는다.
+ * - 같은 코드가 기본 자료에 있으면(prev) 적어 준 칸만 바꾼다 → 활동·학생 문장만 우리 반에 맞게 바꿀 수 있다
+ * - 새 성취기준이면 code·gradeBand·officialText 가 꼭 있어야 하고, 빠진 칸은 기본값으로 채운다
+ * - 모양이 틀린 항목은 앱이 멈추지 않도록 건너뛴다 (null)
+ */
+export function normalizeExtra(e: unknown, prev?: Standard): Standard | null {
+  if (!e || typeof e !== "object") return null;
+  const x = e as Record<string, unknown>;
+  if (!isStr(x.code) || !/^\[.+\]$/.test(x.code.trim())) return null;
+  const code = x.code.trim();
+  const pick = (k: string, fallback: string) => (isStr(x[k]) && (x[k] as string).trim() ? (x[k] as string).trim() : fallback);
+  const pickList = (k: string, fallback: string[]) => (Array.isArray(x[k]) ? strList(x[k]) : fallback);
+
+  if (prev) {
+    return {
+      ...prev,
+      kidText: pick("kidText", prev.kidText),
+      activity: pick("activity", prev.activity),
+      activityUnlisted: pick("activityUnlisted", prev.activityUnlisted ?? ""),
+      teacherNote: pick("teacherNote", prev.teacherNote),
+      aiAvoid: pickList("aiAvoid", prev.aiAvoid),
+      match: x.match ? matchOf(x.match) : prev.match,
+      priority: typeof x.priority === "number" ? x.priority : prev.priority,
+    };
+  }
+
+  if (!isGradeBand(x.gradeBand) || !pick("officialText", "")) return null;
+  const officialText = pick("officialText", "");
+  const subject = pick("subject", "");
+  const domain = pick("domain", "");
+  const src = (x.source && typeof x.source === "object" ? x.source : {}) as Record<string, unknown>;
+  const match = matchOf(x.match);
+  return {
+    code,
+    subject,
+    gradeBand: x.gradeBand,
+    domain,
+    unit: pick("unit", domain || subject),
+    officialText,
+    kidText: pick("kidText", officialText),
+    commentary: isStr(x.commentary) && x.commentary.trim() ? x.commentary.trim() : null,
+    considerations: strList(x.considerations),
+    inquiry: strList(x.inquiry),
+    source: { title: isStr(src.title) ? src.title : "", pages: isStr(src.pages) ? src.pages : "" },
+    note: isStr(x.note) ? x.note : undefined,
+    activity: pick("activity", "오늘 관찰한 식물과 이 내용을 이어서, 알게 된 것을 한 가지 적어 보세요."),
+    activityUnlisted: pick("activityUnlisted", "") || undefined,
+    teacherNote: pick("teacherNote", ""),
+    aiAvoid: strList(x.aiAvoid),
+    match: Object.keys(match).length ? match : { always: true }, // 조건을 안 적으면 그 학년 모든 식물에 연결
+    priority: typeof x.priority === "number" ? x.priority : 5,
+  };
+}
+
+/** 기본 자료 + 추가 파일 (같은 코드는 추가 파일이 이긴다) */
+export function mergeStandards(base: Standard[], extra: unknown): Standard[] {
+  const byCode = new Map(base.map((s) => [s.code, s] as const));
+  for (const e of Array.isArray(extra) ? extra : []) {
+    const code = e && typeof e === "object" && isStr((e as { code?: unknown }).code) ? (e as { code: string }).code.trim() : "";
+    const s = normalizeExtra(e, byCode.get(code));
+    if (s) byCode.set(s.code, s);
+  }
+  return [...byCode.values()];
+}
+
+const base = raw as CurriculumData;
+export const CURRICULUM: CurriculumData = { ...base, standards: mergeStandards(base.standards, extraRaw as unknown) };
 
 export function getStandard(code: string): Standard | undefined {
   return CURRICULUM.standards.find((s) => s.code === code);

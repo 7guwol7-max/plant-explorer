@@ -205,3 +205,42 @@ describe("그림 도움말 낱말", () => {
     }
   });
 });
+
+describe("선생님이 더한 성취기준 (data/curriculum-extra.json)", () => {
+  // 기본 자료의 성취기준 하나를 본으로 쓴다
+  const base = [getStandard("[4과03-01]")!, getStandard("[4과14-01]")!];
+
+  it("새 성취기준을 더하고, 빠진 칸은 기본값으로 채운다", async () => {
+    const { mergeStandards } = await import("@/lib/curriculum");
+    const merged = mergeStandards(base, [{ code: "[4과99-01]", gradeBand: "3-4", officialText: "새 성취기준 원문이다." }]);
+    const s = merged.find((x) => x.code === "[4과99-01]")!;
+    expect(s.considerations).toEqual([]);
+    expect(s.aiAvoid).toEqual([]);
+    expect(s.match).toEqual({ always: true }); // 조건이 없으면 그 학년 모든 식물에
+    expect(s.kidText).toBe("새 성취기준 원문이다.");
+    expect(s.activity.length).toBeGreaterThan(10);
+  });
+
+  it("같은 코드면 적어 준 칸만 바꾸고 원문은 그대로 둔다", async () => {
+    const { mergeStandards } = await import("@/lib/curriculum");
+    const merged = mergeStandards(base, [{ code: "[4과14-01]", activity: "우리 학교 연못 둘레에서 찾아 보세요.", officialText: "바뀌면 안 됨" }]);
+    const s = merged.find((x) => x.code === "[4과14-01]")!;
+    expect(s.activity).toBe("우리 학교 연못 둘레에서 찾아 보세요.");
+    expect(s.officialText).toBe(base[1].officialText);
+    expect(s.match).toEqual(base[1].match);
+    expect(merged.length).toBe(2);
+  });
+
+  it("모양이 틀린 항목은 건너뛴다 (앱이 멈추지 않게)", async () => {
+    const { mergeStandards } = await import("@/lib/curriculum");
+    const bad = [null, "글자", { code: "코드없음" }, { code: "[4과99-02]", gradeBand: "3학년", officialText: "x" }, { code: "[4과99-03]", gradeBand: "3-4" }];
+    expect(mergeStandards(base, bad).map((s) => s.code)).toEqual(["[4과03-01]", "[4과14-01]"]);
+    expect(mergeStandards(base, { not: "array" }).length).toBe(2);
+  });
+
+  it("예시로 넣은 [6실04-09]가 5~6학년 화단 관찰에서 연결된다", () => {
+    expect(getStandard("[6실04-09]")?.subject).toBe("실과");
+    const c = linkCurriculum({ gradeBand: "5-6", place: "학교 화단" }).map((l) => l.standard.code);
+    expect(c).toContain("[6실04-09]");
+  });
+});

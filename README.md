@@ -18,7 +18,8 @@
 ## 0. 연수용 시작 버전
 
 - [7guwol7-max/plant-explorer-starter](https://github.com/7guwol7-max/plant-explorer-starter): 이 저장소에서 미션 파일 4개(`lib/site.ts`, `lib/termText.ts`, `app/components/Steps.tsx`, `app/components/MissionProgress.tsx`)만 비운 연수용 버전. README 의 Deploy 버튼 한 번으로 참가자 GitHub 저장소 + Vercel 자동 배포가 만들어진다
-- 미션 파일은 다른 파일이 쓰는 이름·받는 값을 바꾸지 않으면 통째로 바꿔 넣어도 되게 작게 나눠 두었다. 이 저장소의 같은 파일이 '정답'
+- 선생님이 고치기 쉬운 자리: `lib/site.ts`(앱 이름·아래 메뉴·장소 칩), `data/curriculum-extra.json`(성취기준 MCP로 찾은 성취기준·우리 반 활동 추가, 같은 코드면 활동·학생 문장만 덮어쓰기), `lib/termText.ts`(그림 도움말 글), 새 화면 `app/주소/page.tsx`
+- 이 저장소의 같은 파일이 '정답'
 - 진행표·프롬프트: 노션 '클로드 무료 계정 연수 진행표'
 
 ## 1. 다른 사람이 쓰는 방법 (키 연동 구조)

@@ -1,3 +1,5 @@
+import { SITE } from "@/lib/site";
+
 /**
  * 발견 → 추정 → 확인 화면 사이에 잠시 들고 다니는 작업 중 자료 (sessionStorage)
  */
@@ -50,7 +52,8 @@ export function clearDraft() {
 
 export const MAX_PHOTOS = 3;
 
-export const PLACES = ["학교 운동장", "학교 화단", "학교 뒷산", "교실 화분", "집 근처", "기타"];
+/** 장소 칩은 lib/site.ts 에서 고친다 */
+export const PLACES: string[] = SITE.places;
 export const LEAF_SHAPES = ["넓적한 잎", "길쭉한 잎", "바늘 잎", "부채 모양", "손바닥 모양", "깃털처럼 갈라짐", "모름"];
 export const LEAF_VEINS = ["그물맥", "나란히맥", "부챗살맥", "모름"];
 export const STEMS = ["굵은 나무줄기", "가는 풀줄기", "덩굴", "모름"];
