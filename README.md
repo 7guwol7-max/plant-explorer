@@ -1,12 +1,50 @@
-# 학교 식물 탐사대 — AI 생태 탐사 웹앱 (1차 뼈대)
+# 학교 식물 탐사대 — 사진으로 찾고, 교과서와 잇는 식물 탐구 웹앱
 
-사진으로 발견하는 우리 학교 식물도감. 카메라로 식물을 찍고, AI가 후보를 제안하면, 국립수목원 공공데이터로 확인하고, 관찰 기록을 도감 카드로 남기는 초등 과학 탐구 웹앱.
+카메라로 식물을 찍고 → (AI가 후보를 제안하면) → **국립수목원 공공데이터**로 공식 정보를 확인하고 → **2022 개정 교육과정 성취기준**과 연결된 활동을 하며 → 관찰 기록을 도감 카드로 남기는 초등 과학 탐구 웹앱.
 
-- AI(제미나이)는 **후보를 제안**하는 도구, 국립수목원 API는 **공식 정보를 확인**하는 도구
-- 사용자(교사)마다 **자기 키를 넣어 쓰는 구조** — 서버는 키를 저장하지 않음
-- 휴대폰(카메라)·노트북(파일 선택) 모두 동작, HTTPS 배포 시 카메라 사용 가능
+- **휴대폰·태블릿**: 기본 카메라 앱으로 찍기 / 앨범에서 고르기 · 홈 화면에 추가하면 앱처럼 열림
+- **컴퓨터**: 웹캠 창으로 찍기 / 사진 파일 고르기 / 사진을 끌어다 놓기 · 넓은 화면 배치
+- **쓰는 사람마다 자기 키**: 공공데이터포털 키(필수)·제미나이 키(선택)를 각자 설정 화면에 넣으면 연동. 서버는 키를 저장하지 않음
+- AI(제미나이)는 **후보를 제안**하는 도구, 국립수목원 API는 **공식 정보를 확인**하는 도구, 교육과정 연결은 **정해진 규칙**(AI 아님)
 
-## 1. 빠른 시작
+## 1. 다른 사람이 쓰는 방법 (키 연동 구조)
+
+앱 주소만 알려 주면 됩니다. 각자 아래 순서로 자기 키를 넣습니다. 앱 안의 **⚙️ 설정** 화면에 같은 안내와 바로가기 링크가 있습니다.
+
+1. **공공데이터포털 회원가입·로그인** — https://www.data.go.kr
+2. **활용신청** — 검색창에 `국립수목원 식물자원` → **산림청 국립수목원_식물자원 조회 서비스**(오픈 API) → 활용신청 (자동승인)
+   - 활용목적 예시(설정 화면에서 복사 가능): *초등학교 과학 수업에서 학생이 학교 식물을 사진으로 관찰하고, 국립수목원 식물도감 공식 정보를 조회해 교육과정과 연결된 관찰 기록을 작성하는 비영리 교육용 웹앱에 활용합니다.*
+3. **키 복사** — 마이페이지 → 개발계정 (https://www.data.go.kr/iim/api/selectAPIAcountView.do) → 서비스 클릭 → **일반 인증키** 복사
+   - Encoding·Decoding 어느 쪽이든, 미리보기 주소를 통째로 붙여 넣어도 앱이 알아서 디코딩 키로 맞춤 (`lib/datakey.ts`)
+4. **앱의 ⚙️ 설정 → 붙여 넣기 → [저장하고 연결 확인]** → 초록 글씨가 나오면 끝
+5. (선택) **제미나이 키** — https://aistudio.google.com/apikey 에서 만들어 같은 화면에 넣으면 사진으로 후보 찾기·쉬운 설명이 켜짐. 없으면 이름을 직접 넣어 진행
+
+자주 막히는 곳 (앱이 결과코드별로 안내함):
+
+| 결과코드 | 뜻 | 해결 |
+|---|---|---|
+| 20 | 이 서비스 권한 없음 | 다른 API 키가 있어도 **이 서비스는 따로 활용신청** 필요 (키 글자는 같음) |
+| 30 | 등록되지 않은 키 | 키를 빠짐없이 복사했는지 확인, 신규 발급 직후면 반영까지 기다림 |
+| 31 | 기간 만료 | 마이페이지에서 활용 기간 연장 |
+| 22 | 하루 한도 초과 | 개발계정 하루 1,000건. 내일 다시 / 다른 키 |
+
+### 키가 흐르는 길
+
+| 어디에 | 무엇이 | 비고 |
+|---|---|---|
+| 브라우저 저장소 (`keys`) | 공공데이터포털 키(디코딩으로 정리), 제미나이 키 | "이 기기에 저장"=localStorage, "이번만"=sessionStorage |
+| 요청 헤더 | `x-data-key`, `x-gemini-key` | `lib/client/keys.ts` 의 `api()` 가 붙임 |
+| 서버 함수 | `lib/server/keys.ts` 의 `getKeys(req)` | 헤더에서 읽어 외부 호출 후 버림, 저장·기록 없음 |
+| 서버 환경변수 | `DATA_GO_KR_KEY`, `GEMINI_API_KEY` | `ALLOW_SHARED_KEY=1` 일 때만, 헤더에 키가 없을 때 대신 사용 (강사 시연용) |
+| `/api/config` | `{ mock, sharedData, sharedGemini }` | 화면이 "키가 꼭 필요한지" 판단. 키 값은 보내지 않음 |
+
+- 공공데이터포털 키가 없으면 `401 NO_DATA_KEY` → 설정 화면으로 이동, 첫 화면에는 "처음 오셨나요?" 안내
+- 키가 틀리면 `401 BAD_DATA_KEY` + 결과코드별 안내문 + "키 설정 확인하기" 버튼
+- 제미나이 키가 없으면 AI 단계를 건너뛰고 "이름으로 국립수목원 정보 찾기"로 진행
+- 캐시는 검색어·도감번호 기준(키와 무관, 24시간) → 한 반이 같은 식물을 찾아도 호출 1회. 단 '연결 확인'은 캐시를 건너뛰고 실제로 호출
+- 학급 기기 일괄 배포: `/teacher` 의 QR (주소 `#k=…` 프래그먼트에 키+학년, 서버로 전송되지 않음)
+
+## 2. 빠른 시작 (개발자·강사)
 
 ```bash
 npm install
@@ -14,39 +52,48 @@ cp .env.example .env.local      # 키 없이 써 보려면 MOCK=1 로
 npm run dev                      # http://localhost:3000
 ```
 
-- 모의 모드(`MOCK=1`): 국립수목원·제미나이를 호출하지 않고 `samples/` 자료로 전체 흐름 시연 (키 불필요)
-- 실제 모드(`MOCK=0`): 화면 하단 **설정**에서 키 두 개 입력 → 연결 확인 → 저장
+- 연습 모드(`MOCK=1`): 국립수목원·제미나이를 호출하지 않고 `samples/` 자료로 전체 흐름 시연 (키 불필요)
+- 실제 모드(`MOCK=0`): 설정 화면에서 키 입력 → 저장하고 연결 확인
+- 받은 키로 실제 응답 확인: `npm run check-api` (또는 `node scripts/check-api.mjs <키>`) → `samples/real_*.xml` 저장
+- 테스트: `npm test` · 타입 검사: `npm run typecheck`
 
-## 2. 전체 흐름
+## 3. 전체 흐름
 
 ```
-① 발견  /            사진 촬영·업로드 + 장소 + 사전 관찰(잎 모양·잎맥·줄기)
-   ↓  POST /api/identify (제미나이)            → 후보 2~3종 {국명, 학명, 신뢰도, 근거}
-② 추정  /            후보 고르기 또는 직접 입력
+① 발견  /            사진(휴대폰 카메라·웹캠·파일) + 장소 + 사전 관찰(잎 모양·잎맥·줄기)
+   ↓  POST /api/identify (제미나이, 선택)      → 후보 2~3종 {국명, 학명, 신뢰도, 근거}
+② 추정  /            후보 고르기 또는 이름 직접 입력 (제미나이 키가 없으면 이름 입력만)
    ↓  GET /api/plants/search?q=국명 (국립수목원) → 도감번호  (0건이면 학명 속명으로 재검색)
 ③ 확인  /plant/[no]  GET /api/plants/detail?no= (국립수목원) → 형태·특징·생육환경·분포·유사종…
-                      POST /api/explain (제미나이)  → 쉬운 설명 + 관찰 질문 3개 + 비교 힌트
-④ 기록  /plant/[no]  일치/불일치/모름 · 관찰 질문 답 · 새로 알게 된 점 → 나의 도감 저장
-📒 나의 도감 /my      이 기기(localStorage)에 저장된 카드, 인쇄
-🔍 검색  /search      이름으로 찾는 작은 도감 (1단계 기능)
-⚙️ 설정  /settings    키 입력·연결 확인·저장 방식·삭제
-👩‍🏫 교사  /teacher     학급 설정 QR (학생 기기에 키 일괄 저장)
+                      POST /api/explain (제미나이) → 학년 맞춤 쉬운 설명 + 성취기준에 맞춘 관찰 질문
+📚 교과서 연결        lib/curriculum.ts (규칙) → 학년별 성취기준 원문 + 이어지는 까닭(국립수목원 원문 근거) + 해 볼 활동
+④ 기록  /plant/[no]  일치/불일치/모름 · 관찰 질문 답 · 교과서 활동 답 · 새로 알게 된 점 → 나의 도감 저장
+📒 나의 도감 /my      카드 / 🗂️ 분류해 보기(관찰 기준·내가 정한 기준) / 📚 교과서별 모아 보기, 인쇄
+🔍 검색  /search      이름으로 찾는 작은 도감
+⚙️ 설정  /settings    키 받는 방법·입력·연결 확인·학년·저장 방식
+👩‍🏫 교사  /teacher     학급 설정 QR · /curriculum 교육과정 연결표
 ```
 
-## 3. 키 구조 (사용자별)
+## 4. 교육과정 연결
 
-| 어디에 | 무엇이 | 비고 |
+- 자료: `data/curriculum.json` — 성취기준 원문·해설·고려 사항·탐구 활동은 **교육과정 별책 문장 그대로**, 활동·연결 규칙은 앱 제안
+- 기준: 2022 개정 교육과정 (교육부 고시 제2022-33호·국가교육위원회 고시 제2024-3호). **국가교육위원회 고시 제2026-1호(2026.1.21.) 개정분(초등 통합교과 개편)은 미반영** → 1~2학년 연결은 적용 학년도에 맞는지 확인 필요
+- 연결 규칙(`match`): 항상 / 공식 정보 항목이 있을 때 / 공식 정보에 낱말이 나올 때 / 찾은 장소 / 줄기 관찰
+- AI 쉬운 설명은 연결된 성취기준을 받아 관찰 질문을 맞추고, 해설에서 "다루지 않는다"고 한 내용(예: 3~4학년 '적응', '생물학적 분류 체계')은 쓰지 않도록 지시
+
+| 학년군 | 성취기준 | 연결되는 때 |
 |---|---|---|
-| 브라우저 저장소 (`keys`) | 공공데이터포털 디코딩 키, 제미나이 키 | "이 기기에 저장"=localStorage, "이번만"=sessionStorage |
-| 요청 헤더 | `x-data-key`, `x-gemini-key` | `lib/client/keys.ts` 의 `api()` 가 자동으로 붙임 |
-| 서버 함수 | `lib/server/keys.ts` 의 `getKeys(req)` | 헤더에서 읽어 외부 호출 후 버림, 저장·기록 없음 |
-| 서버 환경변수 | `DATA_GO_KR_KEY`, `GEMINI_API_KEY` | `ALLOW_SHARED_KEY=1` 일 때만, 헤더에 키가 없을 때 대신 사용 (강사 시연용) |
+| 1~2 | [2슬01-04] | 모든 관찰 |
+| 3~4 | [4과03-01] 식물 분류 | 모든 관찰 (나의 도감 '분류해 보기'와 연결) |
+| 3~4 | [4과03-02] 환경과 생김새 | 생육환경 원문이 있거나 장소를 골랐을 때 |
+| 3~4 | [4과04-03] 한살이 유형 | 한해살이·여러해살이 등 낱말, 나무줄기 관찰 |
+| 3~4 | [4과04-02] 자라는 조건 | 햇빛·그늘·습기 등 낱말, 교실 화분 |
+| 3~4 | [4과14-01]·[4과14-02]·[4과14-03] 생물과 환경 | 바깥 장소 / 곤충·열매 등 / 보호 방안·멸종 등 |
+| 3~4 | [4과03-03] 생활용품 설계 | 이용 방안, 가시·갈고리 등 |
+| 5~6 | [6과11-02]·[6과11-03] 식물의 구조와 기능 | 모든 관찰 |
+| 5~6 | [6실04-07]·[6실04-08] 실과 | 이용 방안·식용 등 / 교실 화분·화단·재배 등 |
 
-- 키가 없으면 서버가 `401 {error:"NO_DATA_KEY"|"NO_GEMINI_KEY"}` → 클라이언트가 설정 화면으로 이동
-- 캐시는 검색어·도감번호 기준(키와 무관, 24시간) → 한 반이 같은 식물을 찾아도 호출 1회
-- 학생 기기 배포: 설정 화면에서 직접 입력 또는 `/teacher` 의 QR(주소 `#k=…` 프래그먼트, 서버에 전송되지 않음)
-
-## 4. 국립수목원 API (활용명세 확정)
+## 5. 국립수목원 API
 
 기본 주소 `https://apis.data.go.kr/1400119/PlantResource` · 응답 XML
 
@@ -55,52 +102,44 @@ npm run dev                      # http://localhost:3000
 | `GET /plantPilbkSearch` | `serviceKey`, `pageNo`, `numOfRows`, `reqSearchWrd`(국명/학명) | `plantPilbkNo`, `plantGnrlNm`, `plantSpecsScnm`, `familyKorNm`, `genusKorNm`, `totalCount` |
 | `GET /plantPilbkInfo` | `serviceKey`, `reqPlantPilbkNo` | `shpe` 형태, `spft` 특징, `grwEvrntDesc` 생육환경, `dstrb` 분포, `osDstrb`, `rrngType`, `rrngGubun`, `smlrPlntDesc` 유사종, `useMthdDesc`, `prtcPlnDesc`, `orplcNm`, `inductionDesc`, `engNm` |
 
-- 응답에 **이미지 항목 없음** → 카드 사진은 학생이 찍은 사진
-- 결과코드 `00` 정상, `03` 데이터 없음, 인증 오류는 `OpenAPI_ServiceResponse > cmmMsgHeader > returnReasonCode`(20/22/30/31)
-- 개발계정 일 1,000건, 운영계정은 활용사례 등록 후 증설 신청
-- 이용허락: 출처표시·상업적 이용금지·변경금지 → 원문은 수정 없이 표시, AI 재구성 글은 별도 탭에 표시
+- 응답에 이미지 항목 없음 → 카드 사진은 학생이 찍은 사진
+- 결과코드 `00` 정상, `03` 데이터 없음, 인증 오류는 `OpenAPI_ServiceResponse > cmmMsgHeader > returnReasonCode`. XML이 아닌 `Unauthorized` 같은 응답도 키 문제로 처리
+- 이용허락: 출처표시·상업적 이용금지·변경금지 → 원문은 수정 없이 표시, 교과서 연결의 근거 문장도 원문 한 문장을 그대로 인용, AI 재구성 글은 별도 탭
 
-곤충(2차): `https://apis.data.go.kr/1400119/InsectService` 의 `insectPilbkSearch`(`reqSearchWrd`) / `insectPilbkInfo`(`reqInsctPilbkNo`), 상세 항목 `gnrlDsrct` 일반 특징, `ecoDsrct` 생태, `habitDsrct` 습성, `emrgcEraDscrt` 출현시기, `eggDsrct`/`larvaDsrct`/`pupaDsrct`/`femaleDsrct`/`maleDsrct` 한살이, `winterDsrct` 월동
+## 6. 배포 (Vercel 등)
 
-## 5. 0단계 — 실제 응답 검증 (연수 전, 강사)
-
-```bash
-# .env.local 에 DATA_GO_KR_KEY=디코딩키 를 넣은 뒤
-node scripts/check-api.mjs
-```
-
-검색어별 결과 수와 첫 결과를 출력하고, 원문 XML을 `samples/real_*.xml` 로 저장한다. "은행" 과 "은행나무" 의 totalCount 를 비교하면 부분일치 여부를 알 수 있다. 실제 응답을 `samples/plantPilbkSearch.xml`, `samples/plantPilbkInfo_<도감번호>.xml` 이름으로 바꿔 두면 모의 모드가 실제 자료로 동작한다.
-
-## 6. 배포 (Vercel)
-
-1. 저장소를 깃허브에 올리고 Vercel 에서 가져오기
-2. 환경변수: 참가자용 배포본은 `MOCK=0`, `ALLOW_SHARED_KEY=0` 만 설정 (키 없음). 강사 시연본은 `ALLOW_SHARED_KEY=1` + 키 두 개
-3. 배포 주소(HTTPS)로 휴대폰 접속 → 카메라 사용 가능. QR 코드로 주소 배포
+1. 저장소를 Vercel 에서 가져오기 (Next.js 자동 인식)
+2. 환경변수: 여러 사람이 각자 키를 넣는 배포본은 `MOCK=0`, `ALLOW_SHARED_KEY=0` 만 (서버에 키 없음). 강사 시연본은 `ALLOW_SHARED_KEY=1` + 키
+3. 배포 주소는 **HTTPS** → 휴대폰 카메라·컴퓨터 웹캠 모두 사용 가능. QR 코드로 주소 배포
+4. 같은 와이파이의 휴대폰에서 `http://내컴퓨터IP:3000` 으로 시험할 때: 휴대폰 카메라(파일 입력)는 되지만, 웹캠 창은 https 에서만 열림
 
 ## 7. 폴더 구조
 
 ```
 app/
-  layout.tsx, globals.css          공통 틀, 머리글 연결 상태, 하단 탭
-  page.tsx                         ① 발견 → ② 추정  (components/DiscoverFlow.tsx)
-  search/page.tsx                  🔍 이름 검색
-  plant/[no]/page.tsx              ③ 확인 + ④ 기록  (components/PlantDetail.tsx)
-  my/page.tsx                      📒 나의 도감
-  settings/page.tsx                ⚙️ 키 설정
-  teacher/page.tsx                 👩‍🏫 학급 설정 QR
-  components/                      Steps, KeyStatus, KeyFromFragment, BottomNav
-  api/plants/search, api/plants/detail, api/identify, api/explain, api/check
+  layout.tsx, globals.css, manifest.ts, icon.svg   공통 틀, 연결 상태, 하단 탭, 홈 화면 아이콘
+  page.tsx                         ① 발견 → ② 추정  (components/DiscoverFlow.tsx, CameraCapture.tsx)
+  plant/[no]/page.tsx              ③ 확인 + 📚 교과서 연결 + ④ 기록  (PlantDetail.tsx, CurriculumLinks.tsx)
+  my/page.tsx                      📒 나의 도감 (카드·분류해 보기·교과서별)
+  search/ settings/ teacher/ curriculum/
+  api/config, api/check, api/plants/search, api/plants/detail, api/identify, api/explain
+data/curriculum.json               성취기준 원문 + 연결 규칙 + 활동 (교사가 고칠 수 있음)
+lib/datakey.ts                     공공데이터포털 키 정리 (인코딩/디코딩/주소 → 디코딩 키)
+lib/curriculum.ts                  교육과정 연결 계산 (순수 함수, 테스트 있음)
+lib/fields.ts                      국립수목원 항목 이름표
 lib/server/keys.ts                 헤더에서 키 읽기 (사용자별 키 구조의 핵심)
-lib/server/datagokr.ts             국립수목원 호출·XML→JSON·캐시·모의
-lib/server/gemini.ts               제미나이 식별·설명 (JSON 스키마 강제)
-lib/client/keys.ts                 브라우저 키 보관 + api() 공통 호출
-lib/client/{image,draft,cards}.ts  사진 축소, 작업 중 자료, 도감 카드
-samples/                           모의 응답 XML (실제 응답으로 교체 가능)
-scripts/check-api.mjs              0단계 검증 스크립트
+lib/server/datagokr.ts             국립수목원 호출·XML→JSON·결과코드 안내·캐시·연습 모드
+lib/server/gemini.ts               제미나이 식별·설명 (JSON 스키마 강제, 성취기준 반영)
+lib/client/keys.ts                 브라우저 키 보관 + api() 공통 호출 + 오류 정리
+lib/client/useConnection.ts        내 키 + 서버 상태를 합친 연결 상태
+lib/client/{image,draft,cards,prefs}.ts  사진 축소·웹캠 캡처, 작업 중 자료, 도감 카드, 학년
+samples/                           연습 응답 XML (실제 응답으로 교체 가능)
+scripts/check-api.mjs              받은 키로 실제 응답 확인
+tests/                             vitest (키 정리·오류 처리·교육과정 연결)
 ```
 
 ## 8. 다음 단계
 
-- 곤충 탐사(2차): `lib/server/insects.ts` + `/api/insects/*` 추가, 발견 화면에 식물/곤충 전환
-- 학급 공유 도감(Supabase): 교사 로그인 + 학급 코드로 키를 서버에 암호화 저장 → 학생 기기에 키 없음
+- 곤충 탐사(2차): `lib/server/insects.ts` + `/api/insects/*`, 성취기준 [4과02-01]~[4과04-01] 연결
+- 학급 공유 도감: 지금은 카드가 각 기기에만 저장됨. 학급 단위로 모으려면 서버 저장소가 필요
 - 비슷한 식물 비교: `smlrPlntDesc` 로 두 카드 나란히 보기
