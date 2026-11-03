@@ -413,3 +413,9 @@ details.field-block .muted-orig p { font-size: 13.5px; color: var(--muted); marg
 .listed-as { border: 2px solid var(--green); background: #f3faf5; }
 .cand.relative { display: block; width: 100%; text-align: left; cursor: pointer; }
 .easy-section.caution { border-left-color: #f3c58f; background: var(--warn-soft); border-radius: 0 10px 10px 0; padding: 6px 10px 6px 12px; }
+
+/* ───── 연수용 시작 버전의 '여기에 만들어요' 자리 표시 ───── */
+.todo-box {
+  margin: 4px 0 14px; padding: 12px 14px; border-radius: 12px; border: 2px dashed #f3c58f;
+  background: var(--warn-soft); color: var(--warn); font-weight: 700; font-size: 14px; text-align: center;
+}

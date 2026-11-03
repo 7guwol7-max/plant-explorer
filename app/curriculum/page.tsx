@@ -1,7 +1,8 @@
 import Link from "next/link";
+import { SITE } from "@/lib/site";
 import { CURRICULUM, GRADE_BANDS, GRADE_LABEL, describeMatch, standardsFor } from "@/lib/curriculum";
 
-export const metadata = { title: "교육과정 연결표 · 학교 식물 탐사대" };
+export const metadata = { title: `교육과정 연결표 · ${SITE.name}` };
 
 /** 선생님용 교육과정 연결표 — 앱이 어떤 성취기준과, 언제, 어떻게 이어지는지 */
 export default function CurriculumPage() {

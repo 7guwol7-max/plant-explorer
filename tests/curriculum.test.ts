@@ -195,3 +195,13 @@ describe("연습용 국립수목원 자료와 함께", () => {
     }
   });
 });
+
+describe("그림 도움말 낱말", () => {
+  it("첫 화면 선택지마다 설명이 있다 (lib/termText.ts 의 이름이 선택지 글자와 같다)", async () => {
+    const { LEAF_SHAPES, LEAF_VEINS, STEMS } = await import("@/lib/client/draft");
+    const { TERMS } = await import("@/lib/terms");
+    for (const o of [...LEAF_SHAPES, ...LEAF_VEINS, ...STEMS]) {
+      expect(TERMS[o]?.desc, o).toBeTruthy();
+    }
+  });
+});

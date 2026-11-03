@@ -1,6 +1,7 @@
 import UnlistedPlant from "@/app/components/UnlistedPlant";
+import { SITE } from "@/lib/site";
 
-export const metadata = { title: "국립수목원 도감에 없는 식물 · 학교 식물 탐사대" };
+export const metadata = { title: `국립수목원 도감에 없는 식물 · ${SITE.name}` };
 
 /** /unlisted?name=페튜니아&sci=Petunia… — 국립수목원 식물도감에서 찾지 못한 식물 (③ 확인 + ④ 기록) */
 export default async function UnlistedPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {

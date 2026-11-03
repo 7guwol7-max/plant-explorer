@@ -3,6 +3,9 @@ import { useEffect, useState } from "react";
 import TermIcon from "./TermIcon";
 import { TERMS, TERM_GROUP_HINT, TERM_GROUP_TITLE } from "@/lib/terms";
 
+/** 설명이 아직 비어 있을 때 (lib/termText.ts 의 desc 가 "" 이거나 낱말이 빠졌을 때) */
+const NO_DESC = "아직 설명이 없어요. 그림을 보고 골라요.";
+
 type Group = "leafShape" | "leafVein" | "stem";
 
 /**
@@ -49,7 +52,7 @@ export default function TermChips({
                 <span className="tip" role="tooltip">
                   <TermIcon name={o} size={88} />
                   <strong>{o}</strong>
-                  <span>{t.desc}</span>
+                  <span>{t.desc || NO_DESC}</span>
                   {t.examples && <em>예: {t.examples}</em>}
                 </span>
               )}
@@ -73,7 +76,7 @@ export default function TermChips({
                   <button key={o} type="button" className={`term-card ${value === o ? "on" : ""}`} onClick={() => { onPick(o); setOpen(false); }}>
                     <TermIcon name={o} size={72} />
                     <strong>{o}</strong>
-                    {t && <span className="small">{t.desc}</span>}
+                    <span className="small">{t?.desc || NO_DESC}</span>
                     {t?.examples && <em className="small">예: {t.examples}</em>}
                     <span className="pick">{value === o ? "✓ 골랐어요" : "이걸로 고르기"}</span>
                   </button>

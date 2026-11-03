@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FIELD_SHORT, SOURCE_NAME } from "@/lib/fields";
 import { GRADE_BANDS, GRADE_LABEL, activityFor, activitySteps, type CurriculumLink, type GradeBand } from "@/lib/curriculum";
 import type { Role } from "@/lib/client/prefs";
+import MissionProgress from "./MissionProgress";
 
 const SHOW_FIRST = 3;
 
@@ -55,13 +56,7 @@ export default function CurriculumLinks({
         ))}
       </div>
 
-      {links.length > 0 && (
-        <div className={`mission-progress ${doneCount === links.length ? "all" : ""}`} aria-live="polite">
-          <span>🎯 해 볼 활동 <strong>{links.length}</strong>개</span>
-          <span className="mission-meter" aria-hidden><span style={{ width: `${(doneCount / links.length) * 100}%` }} /></span>
-          <span>{doneCount === links.length ? "🎉 모두 적었어요" : `✅ ${doneCount}개 적었어요`}</span>
-        </div>
-      )}
+      {links.length > 0 && <MissionProgress total={links.length} done={doneCount} />}
 
       {links.length === 0 && <p className="muted">이 학년에 연결할 내용을 찾지 못했어요.</p>}
 

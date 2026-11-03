@@ -4,9 +4,10 @@ import KeyStatus from "./components/KeyStatus";
 import TeacherLink from "./components/TeacherLink";
 import KeyFromFragment from "./components/KeyFromFragment";
 import BottomNav from "./components/BottomNav";
+import { SITE } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "학교 식물 탐사대",
+  title: SITE.name,
   description: "사진으로 발견하는 우리 학교 식물도감 — AI 식별 + 국립수목원 공식 정보 + 관찰 기록",
 };
 
@@ -25,7 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <header className="app-header">
           <div className="inner">
             <a href="/" className="brand">
-              🌿 학교 식물 탐사대 <small>AI 생태 탐사</small>
+              {SITE.emoji} {SITE.name} <small>{SITE.tagline}</small>
             </a>
             <div className="header-right">
               <TeacherLink />
