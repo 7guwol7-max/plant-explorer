@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Link from "next/link";
 import "./globals.css";
 import KeyStatus from "./components/KeyStatus";
 import KeyFromFragment from "./components/KeyFromFragment";
@@ -26,7 +27,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <a href="/" className="brand">
               🌿 학교 식물 탐사대 <small>AI 생태 탐사</small>
             </a>
-            <KeyStatus />
+            <div className="header-right">
+              <Link href="/teacher" className="teacher-link">👩‍🏫 선생님</Link>
+              <KeyStatus />
+            </div>
           </div>
         </header>
         <main className="container">{children}</main>

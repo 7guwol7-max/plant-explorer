@@ -4,7 +4,7 @@ import { useConnection } from "@/lib/client/useConnection";
 
 /**
  * 머리글의 연결 상태
- * 초록 '연결됨': 도감+AI / 초록 '도감 연결': 도감만(AI 없이 이름으로 찾기) / 빨강 '키 필요' / 파랑 '연습 모드'
+ * 초록 '연결됨': 도감+AI / 노랑 'AI 키 필요'·'도감 키 필요': 하나만 / 빨강 '키 필요' / 파랑 '연습 모드'
  */
 export default function KeyStatus() {
   const c = useConnection();
@@ -15,8 +15,10 @@ export default function KeyStatus() {
     : c.data && c.gemini
       ? ["#2fbf71", "연결됨"]
       : c.data
-        ? ["#2fbf71", "도감 연결"]
-        : ["#e05252", "키 필요"];
+        ? ["#f1b22a", "AI 키 필요"]
+        : c.gemini
+          ? ["#f1b22a", "도감 키 필요"]
+          : ["#e05252", "키 필요"];
 
   return (
     <Link href="/settings" className="status-link" title="키 설정">

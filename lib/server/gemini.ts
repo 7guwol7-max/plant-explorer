@@ -12,6 +12,7 @@
  */
 import { isMock } from "./keys";
 import type { Standard } from "../curriculum";
+import type { InlineImage } from "./images";
 
 export const DEFAULT_MODELS = [
   "gemini-3.5-flash",
@@ -181,12 +182,7 @@ const IDENTIFY_SCHEMA = {
   required: ["candidates", "uncertain"],
 };
 
-export async function identify(
-  imageBase64: string,
-  mimeType: string,
-  taxon: "plant" | "insect",
-  key: string,
-): Promise<IdentifyResult> {
+export async function identify(images: InlineImage[], taxon: "plant" | "insect", key: string): Promise<IdentifyResult> {
   if (isMock()) {
     return {
       mock: true,
@@ -198,8 +194,9 @@ export async function identify(
     };
   }
   const what = taxon === "insect" ? "곤충" : "식물";
+  const many = images.length > 1 ? `\n사진 ${images.length}장은 모두 같은 ${what}을 여러 방향에서 찍은 것입니다(전체 모습, 잎, 꽃이나 열매 등). 모든 사진을 함께 보고 판단하세요.` : "";
   const prompt = `당신은 초등학생의 과학 탐구를 돕는 ${what} 식별 도우미입니다.
-사진 속 ${what}을 보고 한국에서 볼 수 있는 ${what} 후보를 최대 3개 제시하세요.
+사진 속 ${what}을 보고 한국에서 볼 수 있는 ${what} 후보를 최대 3개 제시하세요.${many}
 - koreanName: 국립수목원 국가표준 국명(예: 은행나무, 소나무, 서양민들레)
 - scientificName: 학명(속명 종소명, 명명자 제외)
 - confidence: 높음/중간/낮음
@@ -207,7 +204,7 @@ export async function identify(
 사진이 흐리거나 ${what}이 아니거나 판단이 어려우면 uncertain을 true로 하고 후보는 "낮음"으로만 표시하세요. 추측으로 확신하지 마세요.`;
   const { json } = await generate(
     key,
-    [{ inlineData: { mimeType, data: imageBase64 } }, { text: prompt }],
+    [...images.map((im) => ({ inlineData: im })), { text: prompt }],
     IDENTIFY_SCHEMA,
   );
   return json;

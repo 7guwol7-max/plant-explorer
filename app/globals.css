@@ -207,6 +207,70 @@ details.teacher-note ul { padding-left: 18px; }
 .sort-btns { padding: 0 8px 8px; gap: 6px; }
 .sort-btns .btn { flex: 1; min-height: 34px; padding: 0; }
 
+
+/* ───── 머리글: 선생님 버튼 ───── */
+.header-right { display: flex; align-items: center; gap: 10px; }
+.teacher-link {
+  font-size: 13px; font-weight: 700; color: var(--green); background: var(--green-soft);
+  border: 1px solid #bfe3cc; border-radius: 999px; padding: 5px 10px; white-space: nowrap;
+}
+@media (max-width: 480px) {
+  .brand small { display: none; }
+  .brand { font-size: 16px; }
+}
+
+/* ───── 사진 여러 장 · 붙여넣기 ───── */
+.photo-hint { text-align: center; padding: 0 16px; line-height: 1.6; }
+.thumbs { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.thumb { position: relative; width: 72px; height: 72px; border-radius: 10px; overflow: hidden; border: 2px solid transparent; background: #e9eee6; }
+.thumb.on { border-color: var(--green); }
+.thumb img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; display: block; }
+.thumb .x {
+  position: absolute; top: 2px; right: 2px; width: 24px; height: 24px; border-radius: 50%; border: 0;
+  background: rgba(0, 0, 0, 0.6); color: #fff; font-size: 16px; line-height: 24px; padding: 0; cursor: pointer;
+}
+.thumb.add { display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--muted); border: 1px dashed var(--line); background: #fbfcfa; text-align: center; }
+.btn-paste { background: #fbfcfa; border-style: dashed; font-weight: 600; }
+.kbd { font-size: 12px; font-weight: 700; color: var(--muted); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px; padding: 1px 6px; background: #fff; }
+
+/* ───── 선생님 모드 ───── */
+a.card.teacher-callout { display: flex; align-items: center; gap: 12px; border: 2px solid #bfe3cc; background: #f7fcf8; }
+a.card.teacher-callout:hover { border-color: var(--green); }
+.teacher-callout .big { font-size: 32px; line-height: 1; }
+.teacher-hero { border: 2px solid var(--green); background: #f7fcf8; }
+.teacher-hero h2 { font-size: 20px; }
+.t-step .t-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.t-step .t-head h3 { margin: 0; font-size: 17px; color: var(--ink); flex: 1; }
+.t-step .num {
+  width: 32px; height: 32px; border-radius: 50%; background: var(--green); color: #fff; font-weight: 800;
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+}
+.t-step.done .num { background: #9ccfae; }
+.key-check { list-style: none; padding: 0; margin: 0 0 10px; }
+.key-check li + li { margin-top: 4px; }
+.qr-step { border: 2px solid var(--green); }
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.seg button {
+  border: 1px solid var(--line); border-radius: 12px; background: #fff; padding: 10px 8px; cursor: pointer;
+  font-weight: 700; font-size: 15px; display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.seg button small { font-weight: 500; font-size: 12px; color: var(--muted); }
+.seg button.on { border: 2px solid var(--green); background: var(--green-soft); color: var(--green); }
+.qr-wrap { display: flex; gap: 16px; align-items: center; margin-top: 14px; flex-wrap: wrap; justify-content: center; }
+.qr.big { width: 260px; height: 260px; margin: 0; }
+.qr.placeholder { display: flex; align-items: center; justify-content: center; color: var(--muted); }
+.qr-side { flex: 1; min-width: 220px; display: flex; flex-direction: column; gap: 10px; }
+.student-box { background: #fbfcfa; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: 14px; }
+.student-steps { margin: 6px 0 0; padding-left: 20px; }
+.student-steps li + li { margin-top: 4px; }
+.ok-text-strong { color: #1f9d5a; }
+.qr-full { position: fixed; inset: 0; z-index: 60; background: #fff; display: flex; align-items: center; justify-content: center; padding: 16px; overflow: auto; }
+.qr-full-inner { display: flex; flex-direction: column; align-items: center; gap: 12px; max-width: 900px; text-align: left; }
+.qr-full-inner h2 { font-size: clamp(24px, 4vw, 40px); margin: 0; }
+.qr-full-inner img { width: min(62vh, 86vw); height: min(62vh, 86vw); }
+.qr-full-inner .student-steps { font-size: clamp(18px, 2.6vw, 28px); }
+.qr-full-inner .btn { width: auto; }
+
 /* ───── 컴퓨터(넓은 화면) ───── */
 @media (min-width: 900px) {
   .app-header .inner, .container, .bottom-nav .inner { max-width: 820px; }

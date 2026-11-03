@@ -115,7 +115,9 @@ function Settings() {
     } catch {}
   }
 
-  const ready = dataCheck.state === "ok" || (conn.ready && conn.data && dataCheck.state !== "bad");
+  const ready =
+    (dataCheck.state === "ok" || (conn.ready && conn.data && dataCheck.state !== "bad")) &&
+    (geminiCheck.state === "ok" || (conn.ready && conn.gemini && geminiCheck.state !== "bad"));
 
   return (
     <>
@@ -123,13 +125,21 @@ function Settings() {
       {conn.mock && <div className="alert ok">지금은 <strong>연습 모드</strong>예요. 키 없이 연습 자료로 모든 화면을 써 볼 수 있어요.</div>}
       {!conn.mock && conn.sharedData && !conn.ownData && <div className="alert ok">선생님(강사)이 준비한 공유 키로 연결돼 있어요. 내 키를 넣으면 내 키를 먼저 써요.</div>}
 
+      <Link href="/teacher" className="card teacher-callout">
+        <span className="big">👩‍🏫</span>
+        <span>
+          <strong>선생님이신가요?</strong>
+          <span className="small" style={{ display: "block" }}>키를 한 번 넣고, 학생 기기에는 QR 하나로 한꺼번에 넣어 주세요 →</span>
+        </span>
+      </Link>
+
       <div className="card">
         <h2>⚙️ 내 키로 연결하기</h2>
         <p className="small" style={{ margin: 0 }}>
           이 앱은 <strong>쓰는 사람마다 자기 키</strong>를 넣어 써요. 키는 <strong>이 기기의 브라우저</strong>에만 저장되고, 요청할 때만 앱 서버를 거쳐 국립수목원·제미나이로 전달돼요. 서버는 키를 저장하거나 기록하지 않아요.
         </p>
         <ol className="steps-list">
-          <li><strong>키 받기</strong> — 공공데이터포털에서 무료로 (5분)</li>
+          <li><strong>키 두 개 받기</strong> — 공공데이터포털·구글 AI 스튜디오에서 무료로 (10분)</li>
           <li><strong>붙여 넣기</strong> — 아래 칸에</li>
           <li><strong>저장하고 연결 확인</strong> — 초록 글씨가 나오면 끝</li>
         </ol>
@@ -196,9 +206,9 @@ function Settings() {
 
       {/* 2. 제미나이 — 선택 */}
       <div className="card">
-        <h2>2. 제미나이 API 키 <span className="badge ai">있으면 좋아요</span></h2>
+        <h2>2. 제미나이 API 키 <span className="badge official">꼭 필요</span></h2>
         <p className="muted small" style={{ marginTop: -4 }}>
-          사진을 보고 식물 후보를 알려 주고, 공식 정보를 쉬운 말로 풀어 줘요. <strong>없어도</strong> 식물 이름을 직접 넣어 공식 정보·교과서 연결·관찰 기록을 모두 쓸 수 있어요.
+          <strong>사진을 보고 어떤 식물인지</strong> 후보를 알려 주는 AI예요. 이 앱의 핵심 기능이에요. 공식 정보를 학년에 맞는 쉬운 말로 풀어 주기도 해요.
         </p>
         <label className="field">
           <span>구글 AI 스튜디오에서 만든 키</span>
@@ -242,6 +252,7 @@ function Settings() {
         </div>
         <div className="stack" style={{ marginTop: 12 }}>
           <button className="btn btn-primary" onClick={save} disabled={!dataInfo.key && !geminiKey.trim()}>저장하고 연결 확인</button>
+          {(dataInfo.key ? !geminiKey.trim() : Boolean(geminiKey.trim())) && <p className="small warn-text" style={{ margin: 0 }}>키 두 개를 모두 넣어야 사진으로 식물을 알아볼 수 있어요.</p>}
           {saved && <div className="alert ok">{saved}</div>}
           {ready && saved && (
             <Link href="/" className="btn btn-ai">🌿 준비 끝! 식물 찾으러 가기 →</Link>
@@ -251,12 +262,8 @@ function Settings() {
       </div>
 
       <div className="card">
-        <h2>선생님용</h2>
-        <ul className="small" style={{ paddingLeft: 18, margin: 0 }}>
-          <li>학급 기기 여러 대에 같은 키를 넣으려면 <Link href="/teacher" className="link">학급 설정 QR →</Link></li>
-          <li>이 앱이 어떤 성취기준과 이어지는지 <Link href="/curriculum" className="link">교육과정 연결표 →</Link></li>
-          <li>다른 선생님께 이 앱을 알려 줄 때는 주소만 보내면 돼요. 각자 이 화면에서 자기 키를 넣으면 연결돼요.</li>
-        </ul>
+        <h2>다른 선생님께 알려 줄 때</h2>
+        <p className="small" style={{ margin: 0 }}>이 앱 주소만 보내면 돼요. 각자 이 화면에서 자기 키를 넣으면 연결돼요. 학생 기기에는 <Link href="/teacher" className="link">선생님 화면의 QR</Link>로 한꺼번에 넣을 수 있어요.</p>
       </div>
     </>
   );

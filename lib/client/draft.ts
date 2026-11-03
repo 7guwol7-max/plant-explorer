@@ -5,7 +5,8 @@ export type Observation = { leafShape: string; leafVein: string; stem: string };
 export type CandidateLite = { koreanName: string; scientificName: string; confidence?: string; evidence?: string };
 
 export type Draft = {
-  photo?: string;           // data URL (긴 변 1024)
+  photo?: string;           // 대표 사진 = photos[0] (확인 화면·도감 카드용)
+  photos?: string[];        // AI에게 보내는 사진 최대 3장 (data URL, 긴 변 1024)
   place?: string;
   observation?: Observation;
   aiCandidates?: CandidateLite[];
@@ -29,10 +30,14 @@ export function saveDraft(d: Draft) {
   try {
     sessionStorage.setItem(D, JSON.stringify(d));
   } catch {
-    /* 사진이 커서 저장 실패할 때는 사진 없이 저장 */
+    /* 사진이 커서 저장 실패할 때는 대표 사진만, 그래도 안 되면 사진 없이 */
     try {
-      sessionStorage.setItem(D, JSON.stringify({ ...d, photo: undefined }));
-    } catch {}
+      sessionStorage.setItem(D, JSON.stringify({ ...d, photos: d.photo ? [d.photo] : undefined }));
+    } catch {
+      try {
+        sessionStorage.setItem(D, JSON.stringify({ ...d, photo: undefined, photos: undefined }));
+      } catch {}
+    }
   }
 }
 
@@ -42,6 +47,8 @@ export function clearDraft() {
     sessionStorage.removeItem(D);
   } catch {}
 }
+
+export const MAX_PHOTOS = 3;
 
 export const PLACES = ["학교 운동장", "학교 화단", "학교 뒷산", "교실 화분", "집 근처", "기타"];
 export const LEAF_SHAPES = ["넓적한 잎", "길쭉한 잎", "바늘 잎", "부채 모양", "손바닥 모양", "깃털처럼 갈라짐", "모름"];
