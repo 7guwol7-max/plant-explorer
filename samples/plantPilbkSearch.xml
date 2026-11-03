@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 모의 샘플: 국립수목원 plantPilbkSearch 응답과 같은 구조. 본문은 시연용 임시 자료이며 공식 설명이 아님. -->
+<response>
+  <header>
+    <resultCode>00</resultCode>
+    <resultMsg>NORMAL SERVICE.</resultMsg>
+  </header>
+  <body>
+    <items>
+      <item>
+        <plantPilbkNo>MOCK0001</plantPilbkNo>
+        <plantGnrlNm>은행나무</plantGnrlNm>
+        <plantSpecsScnm>Ginkgo biloba L.</plantSpecsScnm>
+        <familyKorNm>은행나무과</familyKorNm>
+        <familyNm>Ginkgoaceae</familyNm>
+        <genusKorNm>은행나무속</genusKorNm>
+        <genusNm>Ginkgo</genusNm>
+        <apgFamilyKorNm>은행나무과</apgFamilyKorNm>
+        <apgFamilyNm>Ginkgoaceae</apgFamilyNm>
+        <notRcmmGnrlNm></notRcmmGnrlNm>
+        <lastUpdtDtm>2025-01-01</lastUpdtDtm>
+      </item>
+      <item>
+        <plantPilbkNo>MOCK0002</plantPilbkNo>
+        <plantGnrlNm>소나무</plantGnrlNm>
+        <plantSpecsScnm>Pinus densiflora Siebold &amp; Zucc.</plantSpecsScnm>
+        <familyKorNm>소나무과</familyKorNm>
+        <familyNm>Pinaceae</familyNm>
+        <genusKorNm>소나무속</genusKorNm>
+        <genusNm>Pinus</genusNm>
+        <apgFamilyKorNm>소나무과</apgFamilyKorNm>
+        <apgFamilyNm>Pinaceae</apgFamilyNm>
+        <notRcmmGnrlNm></notRcmmGnrlNm>
+        <lastUpdtDtm>2025-01-01</lastUpdtDtm>
+      </item>
+      <item>
+        <plantPilbkNo>MOCK0003</plantPilbkNo>
+        <plantGnrlNm>단풍나무</plantGnrlNm>
+        <plantSpecsScnm>Acer palmatum Thunb.</plantSpecsScnm>
+        <familyKorNm>단풍나무과</familyKorNm>
+        <familyNm>Aceraceae</familyNm>
+        <genusKorNm>단풍나무속</genusKorNm>
+        <genusNm>Acer</genusNm>
+        <apgFamilyKorNm>무환자나무과</apgFamilyKorNm>
+        <apgFamilyNm>Sapindaceae</apgFamilyNm>
+        <notRcmmGnrlNm></notRcmmGnrlNm>
+        <lastUpdtDtm>2025-01-01</lastUpdtDtm>
+      </item>
+      <item>
+        <plantPilbkNo>MOCK0004</plantPilbkNo>
+        <plantGnrlNm>서양민들레</plantGnrlNm>
+        <plantSpecsScnm>Taraxacum officinale F.H.Wigg.</plantSpecsScnm>
+        <familyKorNm>국화과</familyKorNm>
+        <familyNm>Asteraceae</familyNm>
+        <genusKorNm>민들레속</genusKorNm>
+        <genusNm>Taraxacum</genusNm>
+        <apgFamilyKorNm>국화과</apgFamilyKorNm>
+        <apgFamilyNm>Asteraceae</apgFamilyNm>
+        <notRcmmGnrlNm></notRcmmGnrlNm>
+        <lastUpdtDtm>2025-01-01</lastUpdtDtm>
+      </item>
+    </items>
+    <numOfRows>10</numOfRows>
+    <pageNo>1</pageNo>
+    <totalCount>4</totalCount>
+  </body>
+</response>

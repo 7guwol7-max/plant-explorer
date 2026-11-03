@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 모의 샘플 (시연용 임시 문장, 공식 설명 아님) -->
+<response>
+  <header><resultCode>00</resultCode><resultMsg>NORMAL SERVICE.</resultMsg></header>
+  <body>
+    <item>
+      <plantPilbkNo>MOCK0004</plantPilbkNo>
+      <plantGnrlNm>서양민들레</plantGnrlNm>
+      <plantSpecsScnm>Taraxacum officinale F.H.Wigg.</plantSpecsScnm>
+      <engNm>Common Dandelion</engNm>
+      <familyKorNm>국화과</familyKorNm>
+      <familyNm>Asteraceae</familyNm>
+      <genusKorNm>민들레속</genusKorNm>
+      <genusNm>Taraxacum</genusNm>
+      <shpe>[모의 데이터] 잎은 뿌리에서 모여 나고 가장자리가 깃털처럼 갈라진다. 꽃줄기 끝에 노란 꽃이 한 송이 핀다.</shpe>
+      <spft>[모의 데이터] 꽃받침 조각이 아래로 젖혀진다. 씨앗에 흰 털이 있어 바람에 날린다.</spft>
+      <grwEvrntDesc>[모의 데이터] 길가, 운동장 가장자리, 잔디밭 등 햇빛이 잘 드는 곳.</grwEvrntDesc>
+      <dstrb>[모의 데이터] 전국.</dstrb>
+      <osDstrb>[모의 데이터] 유럽 원산, 전 세계.</osDstrb>
+      <rrngType>여러해살이풀</rrngType>
+      <rrngGubun>초본</rrngGubun>
+      <smlrPlntDesc>[모의 데이터] 민들레(토종)는 꽃받침 조각이 젖혀지지 않고 꽃을 감싼다.</smlrPlntDesc>
+      <useMthdDesc>[모의 데이터] 어린잎을 나물로 먹는다.</useMthdDesc>
+      <prtcPlnDesc></prtcPlnDesc>
+      <orplcNm>유럽</orplcNm>
+      <inductionDesc>귀화</inductionDesc>
+      <lastUpdtDtm>2025-01-01</lastUpdtDtm>
+    </item>
+  </body>
+</response>

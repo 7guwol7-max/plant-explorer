@@ -1,0 +1,49 @@
+/**
+ * 발견 → 추정 → 확인 화면 사이에 잠시 들고 다니는 작업 중 자료 (sessionStorage)
+ */
+export type Observation = { leafShape: string; leafVein: string; stem: string };
+export type CandidateLite = { koreanName: string; scientificName: string; confidence?: string; evidence?: string };
+
+export type Draft = {
+  photo?: string;           // data URL (긴 변 1024)
+  place?: string;
+  observation?: Observation;
+  aiCandidates?: CandidateLite[];
+  aiUncertain?: boolean;
+  chosen?: CandidateLite;   // 학생이 고른 후보 또는 직접 입력
+};
+
+const D = "draft";
+
+export function loadDraft(): Draft {
+  if (typeof window === "undefined") return {};
+  try {
+    return JSON.parse(sessionStorage.getItem(D) ?? "{}") as Draft;
+  } catch {
+    return {};
+  }
+}
+
+export function saveDraft(d: Draft) {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem(D, JSON.stringify(d));
+  } catch {
+    /* 사진이 커서 저장 실패할 때는 사진 없이 저장 */
+    try {
+      sessionStorage.setItem(D, JSON.stringify({ ...d, photo: undefined }));
+    } catch {}
+  }
+}
+
+export function clearDraft() {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.removeItem(D);
+  } catch {}
+}
+
+export const PLACES = ["학교 운동장", "학교 화단", "학교 뒷산", "교실 화분", "집 근처", "기타"];
+export const LEAF_SHAPES = ["넓적한 잎", "길쭉한 잎", "바늘 잎", "부채 모양", "손바닥 모양", "깃털처럼 갈라짐", "모름"];
+export const LEAF_VEINS = ["그물맥", "나란히맥", "부챗살맥", "모름"];
+export const STEMS = ["굵은 나무줄기", "가는 풀줄기", "덩굴", "모름"];

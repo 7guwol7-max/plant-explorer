@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 모의 샘플: plantPilbkInfo 응답 구조. 설명 본문은 시연용 임시 문장이며 국립수목원 공식 설명이 아님. -->
+<response>
+  <header>
+    <resultCode>00</resultCode>
+    <resultMsg>NORMAL SERVICE.</resultMsg>
+  </header>
+  <body>
+    <item>
+      <plantPilbkNo>MOCK0001</plantPilbkNo>
+      <plantGnrlNm>은행나무</plantGnrlNm>
+      <plantSpecsScnm>Ginkgo biloba L.</plantSpecsScnm>
+      <engNm>Ginkgo</engNm>
+      <familyKorNm>은행나무과</familyKorNm>
+      <familyNm>Ginkgoaceae</familyNm>
+      <genusKorNm>은행나무속</genusKorNm>
+      <genusNm>Ginkgo</genusNm>
+      <shpe>[모의 데이터] 잎은 부채 모양이고 가운데가 얕게 갈라지며 잎맥이 부챗살처럼 뻗는다. 긴 가지와 짧은 가지가 있다.</shpe>
+      <spft>[모의 데이터] 가을에 잎이 노랗게 물든다. 암나무와 수나무가 따로 있으며 암나무에 열매가 달린다.</spft>
+      <grwEvrntDesc>[모의 데이터] 햇빛이 잘 드는 곳에서 잘 자라며 공해에 강해 가로수로 많이 심는다.</grwEvrntDesc>
+      <dstrb>[모의 데이터] 전국에 심어 기른다.</dstrb>
+      <osDstrb>[모의 데이터] 중국 원산.</osDstrb>
+      <rrngType>낙엽활엽교목</rrngType>
+      <rrngGubun>교목</rrngGubun>
+      <smlrPlntDesc></smlrPlntDesc>
+      <useMthdDesc>[모의 데이터] 가로수, 공원수로 심는다.</useMthdDesc>
+      <prtcPlnDesc></prtcPlnDesc>
+      <orplcNm>중국</orplcNm>
+      <inductionDesc>도입</inductionDesc>
+      <lastUpdtDtm>2025-01-01</lastUpdtDtm>
+    </item>
+  </body>
+</response>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 모의 샘플 (시연용 임시 문장, 공식 설명 아님) -->
+<response>
+  <header><resultCode>00</resultCode><resultMsg>NORMAL SERVICE.</resultMsg></header>
+  <body>
+    <item>
+      <plantPilbkNo>MOCK0002</plantPilbkNo>
+      <plantGnrlNm>소나무</plantGnrlNm>
+      <plantSpecsScnm>Pinus densiflora Siebold &amp; Zucc.</plantSpecsScnm>
+      <engNm>Korean Red Pine</engNm>
+      <familyKorNm>소나무과</familyKorNm>
+      <familyNm>Pinaceae</familyNm>
+      <genusKorNm>소나무속</genusKorNm>
+      <genusNm>Pinus</genusNm>
+      <shpe>[모의 데이터] 잎은 바늘 모양이고 두 개씩 모여 난다. 나무껍질은 붉은 갈색이며 거북 등처럼 갈라진다.</shpe>
+      <spft>[모의 데이터] 사철 푸른 잎을 가진 늘푸른나무이다. 솔방울이 달린다.</spft>
+      <grwEvrntDesc>[모의 데이터] 햇빛을 좋아하고 메마른 땅에서도 잘 자란다.</grwEvrntDesc>
+      <dstrb>[모의 데이터] 전국 산지.</dstrb>
+      <osDstrb>[모의 데이터] 중국, 일본.</osDstrb>
+      <rrngType>상록침엽교목</rrngType>
+      <rrngGubun>교목</rrngGubun>
+      <smlrPlntDesc>[모의 데이터] 곰솔은 잎이 더 억세고 껍질이 검은빛이다.</smlrPlntDesc>
+      <useMthdDesc>[모의 데이터] 목재, 조경수.</useMthdDesc>
+      <prtcPlnDesc></prtcPlnDesc>
+      <orplcNm>한국</orplcNm>
+      <inductionDesc>자생</inductionDesc>
+      <lastUpdtDtm>2025-01-01</lastUpdtDtm>
+    </item>
+  </body>
+</response>

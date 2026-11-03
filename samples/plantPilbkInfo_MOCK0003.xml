@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 모의 샘플 (시연용 임시 문장, 공식 설명 아님) -->
+<response>
+  <header><resultCode>00</resultCode><resultMsg>NORMAL SERVICE.</resultMsg></header>
+  <body>
+    <item>
+      <plantPilbkNo>MOCK0003</plantPilbkNo>
+      <plantGnrlNm>단풍나무</plantGnrlNm>
+      <plantSpecsScnm>Acer palmatum Thunb.</plantSpecsScnm>
+      <engNm>Palmate Maple</engNm>
+      <familyKorNm>단풍나무과</familyKorNm>
+      <familyNm>Aceraceae</familyNm>
+      <genusKorNm>단풍나무속</genusKorNm>
+      <genusNm>Acer</genusNm>
+      <shpe>[모의 데이터] 잎은 손바닥 모양으로 5~7갈래로 깊게 갈라지고 가장자리에 톱니가 있다. 잎이 마주난다.</shpe>
+      <spft>[모의 데이터] 가을에 잎이 붉게 물든다. 열매에 날개가 있어 바람에 날려 퍼진다.</spft>
+      <grwEvrntDesc>[모의 데이터] 산의 계곡 근처, 공원에서 자란다.</grwEvrntDesc>
+      <dstrb>[모의 데이터] 중부 이남.</dstrb>
+      <osDstrb>[모의 데이터] 일본.</osDstrb>
+      <rrngType>낙엽활엽교목</rrngType>
+      <rrngGubun>교목</rrngGubun>
+      <smlrPlntDesc>[모의 데이터] 당단풍나무는 잎이 9~11갈래로 더 많이 갈라진다.</smlrPlntDesc>
+      <useMthdDesc>[모의 데이터] 조경수.</useMthdDesc>
+      <prtcPlnDesc></prtcPlnDesc>
+      <orplcNm>한국</orplcNm>
+      <inductionDesc>자생</inductionDesc>
+      <lastUpdtDtm>2025-01-01</lastUpdtDtm>
+    </item>
+  </body>
+</response>
