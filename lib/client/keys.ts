@@ -99,7 +99,7 @@ export class ApiError extends Error {
 
 export async function toApiError(res: Response): Promise<ApiError> {
   const j = await res.json().catch(() => ({}));
-  const needs = j?.error === "BAD_DATA_KEY" || j?.error === "NO_DATA_KEY" || j?.error === "NO_GEMINI_KEY";
+  const needs = ["BAD_DATA_KEY", "NO_DATA_KEY", "NO_GEMINI_KEY", "BAD_GEMINI_KEY"].includes(j?.error);
   const message = j?.message
     ? String(j.message)
     : j?.error === "API_ERROR"

@@ -3,6 +3,7 @@ import { getKeys, isMock, noKey } from "@/lib/server/keys";
 import { identify, geminiErrorResponse } from "@/lib/server/gemini";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60; // 제미나이 모델을 차례로 시도할 시간
 
 const DATA_URL = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/;
 const MAX_BASE64 = 6_000_000; // 약 4.5MB

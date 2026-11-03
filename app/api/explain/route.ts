@@ -4,6 +4,7 @@ import { explain, geminiErrorResponse } from "@/lib/server/gemini";
 import { DEFAULT_GRADE, GRADE_LABEL, getStandard, isGradeBand, type Standard } from "@/lib/curriculum";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60; // 제미나이 모델을 차례로 시도할 시간
 
 /**
  * POST /api/explain  { official: {...국립수목원 상세 항목}, gradeBand: "3-4", standards: ["[4과03-01]", …] }

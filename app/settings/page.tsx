@@ -68,7 +68,7 @@ function Settings() {
               ? "강사 공유 키로 연결됨"
               : target === "data"
                 ? `국립수목원 연결 성공! (시험 검색: ${j.sample ?? "소나무"})`
-                : "제미나이 연결 성공!",
+                : `제미나이 연결 성공!${j.model ? ` (모델: ${j.model})` : ""}`,
         });
       } else {
         set({ state: "bad", message: j.message ?? "연결 실패", keyProblem: Boolean(j.keyProblem) });
@@ -203,7 +203,7 @@ function Settings() {
         <label className="field">
           <span>구글 AI 스튜디오에서 만든 키</span>
           <div className="row">
-            <input className="input" style={{ flex: 1 }} type={showGemini ? "text" : "password"} autoComplete="off" spellCheck={false} value={geminiKey} onChange={(e) => { setGeminiKey(e.target.value); setGeminiCheck({ state: "idle" }); }} placeholder="AIza… 로 시작" />
+            <input className="input" style={{ flex: 1 }} type={showGemini ? "text" : "password"} autoComplete="off" spellCheck={false} value={geminiKey} onChange={(e) => { setGeminiKey(e.target.value); setGeminiCheck({ state: "idle" }); }} placeholder="AQ.… 또는 AIza… 로 시작" />
             <button className="btn btn-sm" type="button" onClick={() => setShowGemini((v) => !v)}>{showGemini ? "가리기" : "보기"}</button>
           </div>
         </label>
@@ -215,7 +215,7 @@ function Settings() {
         <details className="guide" style={{ marginTop: 10 }}>
           <summary>키 받는 방법과 주의</summary>
           <ol>
-            <li>구글 AI 스튜디오에서 API 키를 만들어요. <a href={AI_STUDIO} target="_blank" rel="noreferrer">AI 스튜디오 열기 ↗</a></li>
+            <li>구글 AI 스튜디오에서 API 키를 만들어요. <a href={AI_STUDIO} target="_blank" rel="noreferrer">AI 스튜디오 열기 ↗</a> 요즘 만든 키는 <strong>AQ.</strong>으로, 예전 키는 <strong>AIza</strong>로 시작해요. 둘 다 쓸 수 있어요.</li>
             <li><strong>결제 계정을 연결하지 않은 프로젝트</strong>로 만들면 한도를 넘어도 요금이 생기지 않아요.</li>
             <li>무료 한도는 미국 태평양 시간 자정(한국 오후 4~5시)에 다시 채워져요.</li>
           </ol>
