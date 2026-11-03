@@ -7,6 +7,7 @@ import { AI_NAME } from "@/lib/ai";
 import { useConnection } from "@/lib/client/useConnection";
 import { loadGrade, saveGrade, saveRole, useRole } from "@/lib/client/prefs";
 import { GRADE_BANDS, GRADE_LABEL, type GradeBand } from "@/lib/curriculum";
+import EditAppCard from "@/app/components/EditAppCard";
 
 type Mode = "keys" | "url";
 
@@ -214,6 +215,8 @@ export default function TeacherPage() {
           <li>공용 컴퓨터에서는 설정에서 &quot;이번만 사용&quot;을 고르거나 수업 후 &quot;키 삭제&quot;</li>
         </ul>
       </div>
+
+      <EditAppCard />
 
       <Link href="/curriculum" className="card teacher-callout">
         <span className="big">📚</span>

@@ -419,3 +419,11 @@ details.field-block .muted-orig p { font-size: 13.5px; color: var(--muted); marg
   margin: 4px 0 14px; padding: 12px 14px; border-radius: 12px; border: 2px dashed #f3c58f;
   background: var(--warn-soft); color: var(--warn); font-weight: 700; font-size: 14px; text-align: center;
 }
+
+/* ───── app-settings.json 으로 만든 것 ───── */
+.notice-card { background: #fff8e6; border-color: #f6dfa3; font-weight: 700; line-height: 1.6; white-space: pre-wrap; }
+.info-card h3 { margin: 0 0 6px; font-size: 17px; color: var(--ink); }
+.info-card p { margin: 0; line-height: 1.6; }
+.info-card .sub { margin-top: 6px; }
+.edit-app { border: 2px solid var(--green); }
+.app-version { margin-top: 10px; padding: 8px 10px; border-radius: 10px; background: var(--green-soft); }

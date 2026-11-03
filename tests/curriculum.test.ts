@@ -206,7 +206,7 @@ describe("그림 도움말 낱말", () => {
   });
 });
 
-describe("선생님이 더한 성취기준 (data/curriculum-extra.json)", () => {
+describe("선생님이 더한 성취기준 (app-settings.json 의 curriculum)", () => {
   // 기본 자료의 성취기준 하나를 본으로 쓴다
   const base = [getStandard("[4과03-01]")!, getStandard("[4과14-01]")!];
 

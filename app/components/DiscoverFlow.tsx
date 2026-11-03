@@ -10,6 +10,7 @@ import { api, ApiError, toApiError } from "@/lib/client/keys";
 import { useConnection } from "@/lib/client/useConnection";
 import { AI_NAME } from "@/lib/ai";
 import { sciBinomial } from "@/lib/names";
+import { SITE } from "@/lib/site";
 import { fileToDataUrl } from "@/lib/client/image";
 import { imageFromPaste, pasteKey, readClipboardImage } from "@/lib/client/clipboard";
 import { saveDraft, loadDraft, clearDraft, MAX_PHOTOS, PLACES, LEAF_SHAPES, LEAF_VEINS, STEMS, type CandidateLite, type Observation } from "@/lib/client/draft";
@@ -262,6 +263,7 @@ export default function DiscoverFlow() {
     return (
       <>
         {setupBanner}
+        {SITE.notice && <div className="card notice-card" role="note">📢 {SITE.notice}</div>}
         <Steps current={1} />
         <div className="card">
           <h2>① 어떤 식물일까? 사진을 넣어요</h2>

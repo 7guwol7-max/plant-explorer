@@ -7,13 +7,14 @@
  * 같은 입력이면 언제나 같은 결과가 나온다 (AI를 쓰지 않음).
  */
 import raw from "@/data/curriculum.json";
-import extraRaw from "@/data/curriculum-extra.json";
+import { SETTINGS } from "./settings";
 import { OFFICIAL_FIELDS, FIELD_SHORT } from "./fields";
 
 export type GradeBand = "1-2" | "3-4" | "5-6";
 export const GRADE_BANDS: GradeBand[] = ["1-2", "3-4", "5-6"];
 export const GRADE_LABEL: Record<GradeBand, string> = { "1-2": "1~2학년", "3-4": "3~4학년", "5-6": "5~6학년" };
-export const DEFAULT_GRADE: GradeBand = "3-4";
+/** 처음 학년 — app-settings.json 의 defaultGrade */
+export const DEFAULT_GRADE: GradeBand = SETTINGS.defaultGrade;
 
 export const isGradeBand = (v: unknown): v is GradeBand =>
   typeof v === "string" && (GRADE_BANDS as string[]).includes(v);
@@ -49,7 +50,7 @@ export type Standard = {
 
 export type CurriculumData = { basis: string; notice: string; standards: Standard[] };
 
-/* ───────── 선생님이 더하거나 고친 성취기준 (data/curriculum-extra.json) ───────── */
+/* ───────── 선생님이 더하거나 고친 성취기준 (app-settings.json 의 curriculum) ───────── */
 const isStr = (v: unknown): v is string => typeof v === "string";
 const strList = (v: unknown): string[] => (Array.isArray(v) ? v.filter(isStr) : []);
 const matchOf = (v: unknown): Match => {
@@ -130,7 +131,7 @@ export function mergeStandards(base: Standard[], extra: unknown): Standard[] {
 }
 
 const base = raw as CurriculumData;
-export const CURRICULUM: CurriculumData = { ...base, standards: mergeStandards(base.standards, extraRaw as unknown) };
+export const CURRICULUM: CurriculumData = { ...base, standards: mergeStandards(base.standards, SETTINGS.curriculum) };
 
 export function getStandard(code: string): Standard | undefined {
   return CURRICULUM.standards.find((s) => s.code === code);

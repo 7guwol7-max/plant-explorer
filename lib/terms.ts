@@ -4,11 +4,14 @@
  * 키는 lib/client/draft.ts 의 선택지 글자와 같다.
  */
 import { TERM_TEXT, type TermText } from "./termText";
+import { SETTINGS } from "./settings";
 
 export type TermInfo = TermText;
 
-/** 낱말 → 설명. 글은 lib/termText.ts 에서 고친다 */
-export const TERMS: Record<string, TermInfo> = TERM_TEXT;
+/** 낱말 → 설명. 기본 글은 lib/termText.ts, 우리 학교에 맞게 바꾼 글은 app-settings.json 의 terms 가 이긴다 */
+export const TERMS: Record<string, TermInfo> = Object.fromEntries(
+  Object.entries(TERM_TEXT).map(([k, v]) => [k, { desc: SETTINGS.terms[k]?.desc ?? v.desc, examples: SETTINGS.terms[k]?.examples ?? v.examples }]),
+);
 
 export const TERM_GROUP_TITLE: Record<"leafShape" | "leafVein" | "stem", string> = {
   leafShape: "잎 모양",
