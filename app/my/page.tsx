@@ -4,7 +4,7 @@ import Link from "next/link";
 import { loadCards, deleteCard, type Card } from "@/lib/client/cards";
 import { LEAF_SHAPES, LEAF_VEINS, STEMS, PLACES } from "@/lib/client/draft";
 import { FIELD_SHORT } from "@/lib/fields";
-import { GRADE_LABEL } from "@/lib/curriculum";
+import { GRADE_LABEL, activitySteps } from "@/lib/curriculum";
 import { useRole } from "@/lib/client/prefs";
 
 type View = "cards" | "sort" | "curri";
@@ -118,6 +118,7 @@ export default function MyPage() {
             <span className={`badge ${c.verified === "일치" ? "official" : "warn"}`}>내 관찰과: {c.verified}</span>
           </div>
           <div className="muted small" style={{ fontStyle: "italic" }}>{c.confirmed.scientificName}{c.confirmed.family ? ` · ${c.confirmed.family}` : ""}</div>
+          {c.unlisted && <div style={{ marginTop: 6 }}><span className="badge warn">📕 국립수목원 미등록 식물</span></div>}
           {c.photo && <img src={c.photo} alt="" style={{ width: "100%", borderRadius: 12, marginTop: 10 }} />}
           <p className="small" style={{ marginTop: 8 }}>
             📍 {c.place ?? "-"} · 🗓️ {new Date(c.createdAt).toLocaleDateString("ko-KR")}<br />
@@ -169,8 +170,14 @@ export default function MyPage() {
                 ) : (
                   <div className="kid-text"><span className="kid-label">📖 우리 교과서에 이런 내용이 나와요</span><p>{k.kidText}</p></div>
                 )}
-                <div className="small"><strong>해 본 활동</strong> {k.activity}</div>
-                <div style={{ whiteSpace: "pre-wrap", marginTop: 4 }}>{k.answer || <span className="muted">(비어 있음)</span>}</div>
+                <div className={`mission ${k.answer ? "done" : ""}`}>
+                  <div className="mission-head">
+                    <span className="mission-title">🎯 해 본 활동</span>
+                    <span className="mission-tag">{k.answer ? "✅ 적었어요" : "아직 안 적었어요"}</span>
+                  </div>
+                  <ol className="mission-steps">{activitySteps(k.activity).map((t, i) => <li key={i}>{t}</li>)}</ol>
+                  <div className="mission-answer">{k.answer || <span className="muted">(비어 있음)</span>}</div>
+                </div>
               </div>
             ))}
           </div>
@@ -178,21 +185,35 @@ export default function MyPage() {
 
         {c.kidSummary && (
           <div className="card">
-            <span className="badge ai">AI 쉬운 설명</span>
+            <span className="badge ai">{c.unlisted ? `${c.unlisted.by || "AI"}가 알려 준 소개 · 공식 정보 아님` : "AI 쉬운 설명"}</span>
             <p style={{ marginTop: 8 }}>{c.kidSummary}</p>
           </div>
         )}
 
-        <div className="card">
-          <span className="badge official">국립수목원 공식 정보</span>
-          {Object.entries(c.official).filter(([k]) => k !== "source" && FIELD_SHORT[k]).map(([k, v]) => (
-            <details key={k} className="field-block" style={{ marginTop: 8 }}>
-              <summary>{FIELD_SHORT[k]}</summary>
-              <p>{v}</p>
-            </details>
-          ))}
-          <div className="source">출처: {c.official.source}</div>
-        </div>
+        {c.unlisted ? (
+          <div className="unlisted-notice">
+            <div className="unlisted-title">📕 국립수목원 식물도감에 정식으로 등록되어 있지 않은 식물이에요</div>
+            <p>공식 원문이 없어서 {c.unlisted.by ? `${c.unlisted.by}(AI)가 알려 준 내용을` : "내 관찰을"} 남겼어요. 이름표·도감·선생님과 확인해요.</p>
+            {c.unlisted.whyNotListed && <div className="why-not"><strong>🤔 왜 도감에 없을까요?</strong> {c.unlisted.whyNotListed}</div>}
+            {c.unlisted.sections.map((s, i) => (
+              <details key={i} className="field-block" style={{ marginTop: 8 }}>
+                <summary>{s.title} <span className="muted small">(AI)</span></summary>
+                <p>{s.text}</p>
+              </details>
+            ))}
+          </div>
+        ) : (
+          <div className="card">
+            <span className="badge official">국립수목원 공식 정보</span>
+            {Object.entries(c.official).filter(([k]) => k !== "source" && FIELD_SHORT[k]).map(([k, v]) => (
+              <details key={k} className="field-block" style={{ marginTop: 8 }}>
+                <summary>{FIELD_SHORT[k]}</summary>
+                <p>{v}</p>
+              </details>
+            ))}
+            <div className="source">출처: {c.official.source}</div>
+          </div>
+        )}
       </>
     );
   }
@@ -203,7 +224,7 @@ export default function MyPage() {
         {c.photo ? <img src={c.photo} alt="" /> : <div className="noimg">🌱</div>}
         <div className="body">
           <div className="name">{c.confirmed.koreanName}</div>
-          <div className="meta">{c.place ?? ""} · {new Date(c.createdAt).toLocaleDateString("ko-KR")}</div>
+          <div className="meta">{c.place ?? ""} · {new Date(c.createdAt).toLocaleDateString("ko-KR")}{c.unlisted ? " · 📕 도감 미등록" : ""}</div>
           {view === "cards" && <div className="meta">{c.verified === "일치" ? "✅ 관찰 일치" : c.verified === "불일치" ? "❌ 관찰 다름" : "❓ 확인 필요"}{c.drawings?.length ? ` · ✏️ 그림 ${c.drawings.length}` : ""}</div>}
         </div>
       </div>

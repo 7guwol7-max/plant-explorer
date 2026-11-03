@@ -10,7 +10,7 @@ export default function CurriculumPage() {
       <div className="card">
         <h2>📚 교육과정 연결표</h2>
         <p className="small" style={{ margin: 0 }}>
-          학생이 식물을 찍고 국립수목원 공식 정보를 확인하면, 아래 규칙에 따라 성취기준이 연결돼요. 연결은 AI가 아니라 정해진 규칙으로 계산하므로 같은 식물·같은 관찰이면 늘 같은 결과가 나와요.
+          학생이 식물을 찍고 국립수목원 공식 정보를 확인하면, 아래 규칙에 따라 성취기준이 연결돼요. 연결은 AI가 아니라 정해진 규칙으로 계산하므로 같은 식물·같은 관찰이면 늘 같은 결과가 나와요. 국립수목원 도감에 없는 식물은 공식 정보가 없으므로 '찾은 장소'와 '내 관찰'로만 연결하고, 공식 정보 없이 할 수 있는 활동 문장을 보여 줘요.
         </p>
         <p className="muted small" style={{ marginBottom: 0 }}>기준: {CURRICULUM.basis}</p>
         <p className="muted small" style={{ marginBottom: 0 }}>{CURRICULUM.notice}</p>
@@ -37,6 +37,7 @@ export default function CurriculumPage() {
               <div className="app-box small">
                 <div><strong>언제 연결되나요</strong> {describeMatch(s.match).join(" 또는 ")}</div>
                 <div><strong>학생 활동(앱 제안)</strong> {s.activity}</div>
+                {s.activityUnlisted && <div><strong>국립수목원 도감에 없는 식물일 때</strong> {s.activityUnlisted}</div>}
                 <div><strong>앱 활용</strong> {s.teacherNote}</div>
                 {s.aiAvoid.length > 0 && <div><strong>AI 설명에서 다루지 않는 내용</strong> {s.aiAvoid.join(", ")}</div>}
               </div>

@@ -1,5 +1,6 @@
 import { describe, expect, it, beforeAll } from "vitest";
-import { CURRICULUM, GRADE_BANDS, findSentence, linkCurriculum, describeMatch, getStandard, isGradeBand } from "@/lib/curriculum";
+import { CURRICULUM, GRADE_BANDS, findSentence, linkCurriculum, describeMatch, getStandard, isGradeBand, activitySteps, activityFor } from "@/lib/curriculum";
+import { toCardCurriculum } from "@/lib/client/cards";
 import { OFFICIAL_FIELDS } from "@/lib/fields";
 import { curriculumBlock } from "@/lib/server/ai/tasks";
 
@@ -109,6 +110,47 @@ describe("교육과정 연결 계산", () => {
   it("조사 받침에 맞게 쓴다", () => {
     const l = linkCurriculum({ gradeBand: "3-4", observation: { stem: "굵은 나무줄기" } }).find((x) => x.standard.code === "[4과04-03]")!;
     expect(l.reasons.some((r) => r.text.includes("'굵은 나무줄기'로"))).toBe(true);
+  });
+});
+
+describe("해 볼 활동", () => {
+  it("모든 활동이 1~3단계로 나뉘고, 나눠도 글자가 빠지지 않는다", () => {
+    for (const s of CURRICULUM.standards) {
+      for (const text of [s.activity, s.activityUnlisted].filter((t): t is string => Boolean(t))) {
+        const steps = activitySteps(text);
+        expect(steps.length, s.code).toBeGreaterThanOrEqual(1);
+        expect(steps.length, s.code).toBeLessThanOrEqual(3);
+        expect(steps.some((t) => t.startsWith("(")), s.code).toBe(false);
+        expect(steps.join(" ").replace(/\s+/g, " ")).toBe(text.replace(/\s+/g, " ").trim());
+      }
+    }
+  });
+
+  it("괄호 안의 물음표에서는 나누지 않고, (예: …)는 앞 단계에 붙인다", () => {
+    const steps = activitySteps(getStandard("[4과03-01]")!.activity);
+    expect(steps[0]).toContain("분류 기준을 하나 정해 보세요. (예: 잎맥이 나란한가?)");
+    expect(steps.length).toBe(2);
+    expect(activitySteps("가요? 나요. 다(라?)마요!")).toEqual(["가요?", "나요.", "다(라?)마요!"]);
+  });
+
+  it("'공식 정보'를 찾으라는 활동은 도감에 없는 식물용 문장이 따로 있다", () => {
+    for (const s of CURRICULUM.standards) {
+      if (s.activity.includes("공식 정보")) {
+        expect(s.activityUnlisted, s.code).toBeTruthy();
+        expect(s.activityUnlisted, s.code).not.toContain("공식 정보");
+      }
+      expect(activityFor(s, true)).not.toContain("공식 정보");
+      expect(activityFor(s, false)).toBe(s.activity);
+    }
+  });
+
+  it("도감에 없는 식물 카드에는 그때 보여 준 활동 문장을 저장한다", () => {
+    const links = linkCurriculum({ gradeBand: "3-4", place: "학교 화단", observation: { stem: "굵은 나무줄기" } });
+    const saved = toCardCurriculum(links, { "[4과04-03]": "여러해살이" }, true);
+    const one = saved.find((c) => c.code === "[4과04-03]")!;
+    expect(one.activity).toBe(getStandard("[4과04-03]")!.activityUnlisted);
+    expect(one.answer).toBe("여러해살이");
+    expect(toCardCurriculum(links, {}).find((c) => c.code === "[4과04-03]")!.activity).toBe(getStandard("[4과04-03]")!.activity);
   });
 });
 

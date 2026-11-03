@@ -3,7 +3,7 @@
  * 사진은 긴 변 640px, 관찰 그림은 800px JPEG 로 줄여 저장한다 (브라우저 저장소 한도 고려, 보통 15~25장).
  */
 import type { CandidateLite, Observation } from "./draft";
-import type { GradeBand } from "@/lib/curriculum";
+import { activityFor, type CurriculumLink, type GradeBand } from "@/lib/curriculum";
 
 /** 카드에 남기는 교육과정 연결 (원문을 함께 저장해 나중에 자료가 바뀌어도 카드가 그대로 읽힌다) */
 export type CardCurriculum = {
@@ -16,6 +16,13 @@ export type CardCurriculum = {
   answer: string;
 };
 
+/** 국립수목원 도감에 없는 식물 카드: 공식 원문 대신 AI가 알려 준 정보를 '공식 아님'으로 남긴다 */
+export type CardUnlisted = {
+  by: string;                                  // 알려 준 AI 이름 (예: 제미나이)
+  whyNotListed: string;
+  sections: { title: string; text: string }[];
+};
+
 export type Card = {
   id: string;
   createdAt: string;
@@ -23,8 +30,9 @@ export type Card = {
   place?: string;
   myObservation?: Observation;
   aiCandidates?: CandidateLite[];
-  confirmed: { pilbkNo: string; koreanName: string; scientificName: string; family?: string };
-  official: Record<string, string>;
+  confirmed: { pilbkNo: string; koreanName: string; scientificName: string; family?: string }; // 도감에 없는 식물이면 pilbkNo 는 ""
+  official: Record<string, string>;            // 도감에 없는 식물이면 {}
+  unlisted?: CardUnlisted;
   kidSummary?: string;
   answers: { q: string; a: string }[];
   newLearning: string;
@@ -37,6 +45,19 @@ export type Card = {
 /** 학생이 그리거나 종이 그림을 찍어 올린 관찰 그림 */
 export type Drawing = { image: string; note: string; kind: "drawn" | "photo" };
 export const MAX_DRAWINGS = 2;
+
+/** 화면의 교과서 연결 → 카드에 남길 모양 (활동 문장은 그때 보여 준 것 그대로) */
+export function toCardCurriculum(links: CurriculumLink[], answers: Record<string, string>, unlisted = false): CardCurriculum[] {
+  return links.map(({ standard: s }) => ({
+    code: s.code,
+    subject: s.subject,
+    unit: s.unit,
+    officialText: s.officialText,
+    kidText: s.kidText,
+    activity: activityFor(s, unlisted),
+    answer: answers[s.code] ?? "",
+  }));
+}
 
 const C = "cards";
 

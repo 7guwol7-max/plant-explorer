@@ -9,6 +9,7 @@ import ErrorAlert from "./ErrorAlert";
 import { api, ApiError, toApiError } from "@/lib/client/keys";
 import { useConnection } from "@/lib/client/useConnection";
 import { AI_NAME } from "@/lib/ai";
+import { sciBinomial } from "@/lib/names";
 import { fileToDataUrl } from "@/lib/client/image";
 import { imageFromPaste, pasteKey, readClipboardImage } from "@/lib/client/clipboard";
 import { saveDraft, loadDraft, clearDraft, MAX_PHOTOS, PLACES, LEAF_SHAPES, LEAF_VEINS, STEMS, type CandidateLite, type Observation } from "@/lib/client/draft";
@@ -25,6 +26,7 @@ const toErr = (e: unknown, fallback: string): Err =>
  * - 사진 넣는 법: 휴대폰 카메라 / 앨범 / 컴퓨터 웹캠 / 파일 / 끌어다 놓기 / 붙여넣기(Ctrl+V·버튼)
  * - 같은 식물을 여러 방향(전체·잎·꽃이나 열매)으로 최대 3장 → AI가 함께 보고 더 정확하게 판단
  * - 후보가 맞지 않으면 사진을 더 넣어 다시 묻기. 이름 입력은 '이미 알고 있을 때'만 쓰는 접힌 메뉴
+ * - 국립수목원 도감에 없는 후보면 /unlisted 화면으로 (AI 정보 + '정식 등록 안 됨' 안내)
  */
 export default function DiscoverFlow() {
   const router = useRouter();
@@ -43,6 +45,7 @@ export default function DiscoverFlow() {
   const [isMock, setIsMock] = useState(false);
   const [manual, setManual] = useState("");
   const [choices, setChoices] = useState<Summary[] | null>(null); // 검색 결과가 여러 개일 때
+  const [picked, setPicked] = useState<CandidateLite | null>(null); // 도감에서 찾아본 후보
   const [touch, setTouch] = useState(true);
   const [camOpen, setCamOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -181,17 +184,18 @@ export default function DiscoverFlow() {
     setErr(null);
     setChoices(null);
     setBusy("국립수목원 도감에서 찾는 중…");
+    setPicked(c);
     try {
       let items = await search(c.koreanName);
-      // 0건이면 학명(속명 종소명) → 속명 순서로 한 번 더
-      const sci = c.scientificName?.trim().split(/\s+/) ?? [];
-      if (items.length === 0 && sci.length >= 2) items = await search(`${sci[0]} ${sci[1]}`);
-      if (items.length === 0 && sci[0]) items = await search(sci[0]);
+      // 0건이면 학명(속명 종소명)으로 한 번 더.
+      // 속명만으로는 찾지 않는다 — 같은 무리의 다른 식물로 잘못 이어질 수 있어서. (같은 무리 식물은 /unlisted 에서 '다른 식물'로 보여 줌)
+      const bi = sciBinomial(c.scientificName);
+      if (items.length === 0 && bi) items = await search(bi);
+      saveDraft({ ...loadDraft(), photos, photo: photos[0], place, observation: obs, chosen: c });
       if (items.length === 0) {
-        setErr({ message: `'${c.koreanName}'을(를) 국립수목원 도감에서 찾지 못했어요. 다른 후보를 눌러 보거나, 잎·꽃을 더 가까이 찍어 AI에게 다시 물어보세요.` });
+        goUnlisted(c);
         return;
       }
-      saveDraft({ ...loadDraft(), photos, photo: photos[0], place, observation: obs, chosen: c });
       if (items.length === 1 || items.some((i) => i.koreanName === c.koreanName)) {
         const hit = items.find((i) => i.koreanName === c.koreanName) ?? items[0];
         router.push(`/plant/${encodeURIComponent(hit.pilbkNo)}`);
@@ -203,6 +207,11 @@ export default function DiscoverFlow() {
     } finally {
       setBusy(null);
     }
+  }
+
+  /** 국립수목원 도감에 없는 식물 → AI 정보 + 미등록 안내 화면 */
+  function goUnlisted(c: CandidateLite) {
+    router.push(`/unlisted?name=${encodeURIComponent(c.koreanName)}&sci=${encodeURIComponent(c.scientificName ?? "")}`);
   }
 
   async function search(q: string): Promise<Summary[]> {
@@ -402,6 +411,9 @@ export default function DiscoverFlow() {
               <button className="btn btn-sm" style={{ marginTop: 8 }} onClick={() => { saveDraft({ ...loadDraft(), chosen: { koreanName: s.koreanName, scientificName: s.scientificName } }); router.push(`/plant/${encodeURIComponent(s.pilbkNo)}`); }}>이것이에요</button>
             </div>
           ))}
+          {picked && (
+            <button className="btn btn-ghost btn-sm" onClick={() => goUnlisted(picked)}>&lsquo;{picked.koreanName}&rsquo;이(가) 이 중에 없어요 → AI에게 알아보기</button>
+          )}
         </div>
       )}
 

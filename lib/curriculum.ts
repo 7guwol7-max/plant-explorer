@@ -39,6 +39,7 @@ export type Standard = {
   source: { title: string; pages: string };
   note?: string;
   activity: string;              // 앱이 제안하는 학생 활동
+  activityUnlisted?: string;     // 국립수목원 도감에 없는 식물일 때 쓰는 활동 ('공식 정보'를 찾으라고 하지 않는다)
   teacherNote: string;           // 앱이 이 성취기준을 어떻게 돕는지
   aiAvoid: string[];             // AI 설명에서 다루지 않을 내용 (해설 근거)
   match: Match;
@@ -55,6 +56,43 @@ export function getStandard(code: string): Standard | undefined {
 
 export function standardsFor(grade: GradeBand): Standard[] {
   return CURRICULUM.standards.filter((s) => s.gradeBand === grade).sort((a, b) => a.priority - b.priority);
+}
+
+/** 상황에 맞는 활동 문장 (도감에 없는 식물이면 공식 정보 없이 할 수 있는 활동) */
+export const activityFor = (s: Standard, unlisted = false) => (unlisted && s.activityUnlisted) || s.activity;
+
+/**
+ * 활동 문장을 '한 번에 하나씩' 해 볼 단계로 나눈다 (문장 끝 . ? ! 기준)
+ * - 괄호 안의 물음표·마침표에서는 나누지 않는다
+ * - 괄호로만 된 조각(예: …)은 앞 단계에 붙인다
+ * (옛 iOS 사파리에서도 돌도록 정규식 뒤돌아보기를 쓰지 않는다)
+ */
+export function activitySteps(text: string): string[] {
+  const parts: string[] = [];
+  let cur = "";
+  let depth = 0;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    cur += ch;
+    if (ch === "(") depth++;
+    else if (ch === ")") {
+      depth = Math.max(0, depth - 1);
+      if (depth === 0 && cur.trim().startsWith("(")) {
+        parts.push(cur.trim());
+        cur = "";
+      }
+    } else if (depth === 0 && /[.?!]/.test(ch) && (i + 1 === text.length || /\s/.test(text[i + 1]))) {
+      parts.push(cur.trim());
+      cur = "";
+    }
+  }
+  if (cur.trim()) parts.push(cur.trim());
+  const out: string[] = [];
+  for (const p of parts) {
+    if (p.startsWith("(") && out.length) out[out.length - 1] += ` ${p}`;
+    else out.push(p);
+  }
+  return out;
 }
 
 /* ───────── 연결 계산 ───────── */

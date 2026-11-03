@@ -4,7 +4,7 @@ import { generateClaude } from "@/lib/server/ai/claude";
 import { generateOpenAI, OPENAI_MODELS } from "@/lib/server/ai/openai";
 import { resetModelMemory } from "@/lib/server/ai/chain";
 import { AiError } from "@/lib/server/ai/errors";
-import { EXPLAIN_SCHEMA, IDENTIFY_SCHEMA, GRADE_STYLE, explainPrompt } from "@/lib/server/ai/tasks";
+import { EXPLAIN_SCHEMA, IDENTIFY_SCHEMA, UNLISTED_SCHEMA, GRADE_STYLE, explainPrompt } from "@/lib/server/ai/tasks";
 import { getKeys } from "@/lib/server/keys";
 import type { JsonSchema } from "@/lib/server/ai/types";
 
@@ -177,9 +177,10 @@ describe("AI 응답 스키마", () => {
     }
     if (s.items) checkStrict(s.items, `${path}[]`);
   }
-  it("식별·설명 스키마가 strict 조건을 지킨다", () => {
+  it("식별·설명·도감에 없는 식물 스키마가 strict 조건을 지킨다", () => {
     checkStrict(IDENTIFY_SCHEMA);
     checkStrict(EXPLAIN_SCHEMA);
+    checkStrict(UNLISTED_SCHEMA);
   });
 });
 

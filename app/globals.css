@@ -183,6 +183,8 @@ blockquote.official-text {
   margin: 8px 0; padding: 8px 12px; border-left: 4px solid var(--curri); background: var(--curri-soft);
   border-radius: 0 10px 10px 0; font-weight: 600; font-size: 15px;
 }
+details.why { margin-top: 4px; }
+details.why summary { cursor: pointer; font-weight: 700; color: var(--curri); padding: 4px 0; }
 .why ul { margin: 4px 0 8px; padding-left: 18px; }
 .why .evidence { margin-top: 2px; font-size: 13px; color: var(--ink); background: var(--green-soft); padding: 4px 8px; border-radius: 8px; }
 details.teacher-note { margin-top: 8px; font-size: 13px; }
@@ -367,3 +369,47 @@ details.field-block .muted-orig p { font-size: 13.5px; color: var(--muted); marg
   details.teacher-note, .tabs, .sort-btns, .help-btn, .tip { display: none !important; }
   .drawing img { cursor: default; }
 }
+
+/* ───── 🎯 해 볼 활동 (교과서 연결) ─────
+   교과서 문장(노랑)·까닭(파랑)과 구별되는 초록 '미션' 상자. 번호 단계 + 쓰는 칸 + 적으면 바뀌는 표시 */
+.mission {
+  margin: 10px 0 6px; padding: 12px 14px 14px; border-radius: 14px; background: #fff;
+  border: 2px solid var(--green); box-shadow: 0 3px 0 rgba(47, 125, 74, 0.18);
+}
+.mission.done { background: #f3faf5; }
+.mission-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.mission-title { font-size: 18px; font-weight: 800; color: var(--green); }
+.mission-tag { flex: none; font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 999px; background: var(--green); color: #fff; }
+.mission.done .mission-tag { background: var(--green-soft); color: var(--green); }
+.mission-steps { list-style: none; margin: 0 0 10px; padding: 0; counter-reset: step; }
+.mission-steps li { position: relative; counter-increment: step; padding-left: 34px; margin: 8px 0; font-size: 16px; font-weight: 600; line-height: 1.6; }
+.mission-steps li::before {
+  content: counter(step); position: absolute; left: 0; top: 1px; width: 24px; height: 24px; border-radius: 50%;
+  background: var(--green); color: #fff; font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center;
+}
+.mission-input { border: 1.5px dashed #9fd0b0; background: #fbfdfb; font-size: 16px; }
+.mission-input:focus { outline: 3px solid var(--green-soft); border-style: solid; border-color: var(--green); }
+.mission-link { margin-top: 8px; width: 100%; }
+.mission-answer { margin-top: 4px; padding: 8px 10px; border-radius: 10px; background: #fff; border: 1px solid #cfe8d7; white-space: pre-wrap; }
+.mission-progress {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 12px; padding: 10px 12px; border-radius: 12px;
+  background: var(--green-soft); color: var(--green); font-size: 14px; font-weight: 700;
+}
+.mission-progress strong { font-size: 16px; }
+.mission-meter { flex: 1; min-width: 60px; height: 8px; border-radius: 4px; background: #fff; overflow: hidden; }
+.mission-meter span { display: block; height: 100%; background: var(--green); border-radius: 4px; transition: width 0.3s; }
+.mission-progress.all { background: #d6f0de; }
+
+/* ───── 국립수목원 도감에 없는 식물 ───── */
+.unlisted-notice { margin-bottom: 12px; padding: 14px 16px; border-radius: var(--radius); background: var(--warn-soft); border: 2px solid #f3c58f; }
+.unlisted-notice.checking { background: #fbfcfa; border: 1px dashed var(--line); }
+.unlisted-title { font-size: 17px; font-weight: 800; color: var(--warn); line-height: 1.45; }
+.unlisted-notice.checking .unlisted-title { color: var(--ink); }
+.unlisted-notice p { margin: 8px 0 0; line-height: 1.6; }
+.why-not { margin-top: 10px; padding: 8px 10px; border-radius: 10px; background: #fff; border: 1px solid #f6dfa3; }
+.check-tips { margin-top: 10px; padding: 8px 10px; border-radius: 10px; background: #fff; }
+.check-tips ul { margin: 4px 0 0; padding-left: 4px; list-style: none; }
+.check-tips li { margin: 3px 0; }
+.listed-as { border: 2px solid var(--green); background: #f3faf5; }
+.cand.relative { display: block; width: 100%; text-align: left; cursor: pointer; }
+.easy-section.caution { border-left-color: #f3c58f; background: var(--warn-soft); border-radius: 0 10px 10px 0; padding: 6px 10px 6px 12px; }

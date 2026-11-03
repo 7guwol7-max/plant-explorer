@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import Steps from "./Steps";
 import ErrorAlert from "./ErrorAlert";
 import CurriculumLinks from "./CurriculumLinks";
-import ObservationDrawings from "./ObservationDrawings";
+import RecordForm, { DEFAULT_QUESTIONS, type RecordData } from "./RecordForm";
 import { api, ApiError, toApiError } from "@/lib/client/keys";
 import { useConnection } from "@/lib/client/useConnection";
 import { loadDraft, clearDraft, type Draft } from "@/lib/client/draft";
-import { saveCard, newCardId, type Card, type Drawing } from "@/lib/client/cards";
+import { saveCard, newCardId, toCardCurriculum, type Card } from "@/lib/client/cards";
 import { shrinkDataUrl } from "@/lib/client/image";
 import { loadGrade, saveGrade, useRole } from "@/lib/client/prefs";
 import { OFFICIAL_FIELDS, SOURCE_NAME } from "@/lib/fields";
@@ -30,13 +30,7 @@ type Explain = {
 };
 type Err = { message: string; needsSettings?: boolean } | null;
 
-const DEFAULT_QUESTIONS = [
-  "잎의 모양과 가장자리는 어떻게 생겼나요?",
-  "줄기는 나무처럼 단단한가요, 풀처럼 부드러운가요?",
-  "이 식물이 자라는 곳은 어떤 환경인가요? (햇빛, 물, 흙)",
-];
-
-const SECTION_ICON: Record<string, string> = { 생김새: "🌿", "사는 곳": "🏞️", "특별한 점": "✨", "우리 생활과 함께": "🏠", "지키는 방법": "🛡️" };
+export const SECTION_ICON: Record<string, string> = { 생김새: "🌿", "사는 곳": "🏞️", "특별한 점": "✨", "우리 생활과 함께": "🏠", "지키는 방법": "🛡️", "기르는 방법": "🪴", "조심할 점": "⚠️" };
 
 /**
  * 화면 ③ 확인 + 📚 교과서 연결 + ④ 기록
@@ -60,14 +54,7 @@ export default function PlantDetail({ no }: { no: string }) {
   const [grade, setGrade] = useState<GradeBand>(DEFAULT_GRADE);
   const autoAsked = useRef(false);
 
-  // 기록(④)
-  const [verified, setVerified] = useState<"일치" | "불일치" | "모름">("모름");
-  const [answers, setAnswers] = useState<string[]>(["", "", ""]);
   const [curriAnswers, setCurriAnswers] = useState<Record<string, string>>({});
-  const [drawings, setDrawings] = useState<Drawing[]>([]);
-  const [newLearning, setNewLearning] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [saveMsg, setSaveMsg] = useState<string | null>(null);
 
   useEffect(() => {
     setDraft(loadDraft());
@@ -130,49 +117,51 @@ export default function PlantDetail({ no }: { no: string }) {
   const easyOf = (k: string) => exp?.fieldsEasy?.find((f) => f.field === k)?.easy;
   const questions = exp?.observeQuestions?.length ? exp.observeQuestions.slice(0, 3) : DEFAULT_QUESTIONS;
 
-  async function save() {
-    if (!detail) return;
-    setSaving(true);
-    setSaveMsg(null);
-    try {
-      const official: Record<string, string> = {};
-      for (const [k] of OFFICIAL_FIELDS) if (detail[k]) official[k] = detail[k];
-      official.source = detail.source ?? SOURCE_NAME;
-      const card: Card = {
-        id: newCardId(),
-        createdAt: new Date().toISOString(),
-        photo: draft.photo ? await shrinkDataUrl(draft.photo, 640) : undefined,
-        place: draft.place,
-        myObservation: draft.observation,
-        aiCandidates: draft.aiCandidates,
-        confirmed: { pilbkNo: no, koreanName: detail.koreanName, scientificName: detail.scientificName, family: detail.family },
-        official,
-        kidSummary: exp?.kidSummary,
-        answers: questions.map((q, i) => ({ q, a: answers[i] ?? "" })),
-        newLearning,
-        verified,
-        gradeBand: grade,
-        curriculum: links.map(({ standard: s }) => ({
-          code: s.code,
-          subject: s.subject,
-          unit: s.unit,
-          officialText: s.officialText,
-          kidText: s.kidText,
-          activity: s.activity,
-          answer: curriAnswers[s.code] ?? "",
-        })),
-        drawings: await Promise.all(drawings.map(async (d) => ({ ...d, image: await shrinkDataUrl(d.image, 800, 0.72) }))),
-      };
-      const r = saveCard(card);
-      if (!r.ok) { setSaveMsg(r.message ?? "저장 실패"); return; }
+  async function save(rec: RecordData) {
+    if (!detail) return { ok: false };
+    const official: Record<string, string> = {};
+    for (const [k] of OFFICIAL_FIELDS) if (detail[k]) official[k] = detail[k];
+    official.source = detail.source ?? SOURCE_NAME;
+    const card: Card = {
+      id: newCardId(),
+      createdAt: new Date().toISOString(),
+      photo: draft.photo ? await shrinkDataUrl(draft.photo, 640) : undefined,
+      place: draft.place,
+      myObservation: draft.observation,
+      aiCandidates: draft.aiCandidates,
+      confirmed: { pilbkNo: no, koreanName: detail.koreanName, scientificName: detail.scientificName, family: detail.family },
+      official,
+      kidSummary: exp?.kidSummary,
+      ...rec,
+      gradeBand: grade,
+      curriculum: toCardCurriculum(links, curriAnswers),
+    };
+    const r = saveCard(card);
+    if (r.ok) {
       clearDraft();
       router.push("/my");
-    } finally {
-      setSaving(false);
     }
+    return r;
   }
 
-  if (notFound) return (<><Steps current={3} /><div className="card"><h2>도감에 없어요</h2><p>국립수목원 식물도감에서 이 번호의 정보를 찾지 못했어요.</p><button className="btn" onClick={() => router.back()}>← 돌아가기</button></div></>);
+  if (notFound) {
+    const c = draft.chosen;
+    return (
+      <>
+        <Steps current={3} />
+        <div className="card">
+          <h2>도감에 없어요</h2>
+          <p>국립수목원 식물도감에서 이 번호의 정보를 찾지 못했어요.</p>
+          {c?.koreanName && (
+            <Link href={`/unlisted?name=${encodeURIComponent(c.koreanName)}&sci=${encodeURIComponent(c.scientificName ?? "")}`} className="btn btn-primary" style={{ marginBottom: 8 }}>
+              🤖 AI에게 &lsquo;{c.koreanName}&rsquo; 알아보기
+            </Link>
+          )}
+          <button className="btn" onClick={() => router.back()}>← 돌아가기</button>
+        </div>
+      </>
+    );
+  }
   if (err) return (<><Steps current={3} /><ErrorAlert {...err} /><button className="btn" onClick={() => router.back()}>← 돌아가기</button></>);
   if (!detail) return (<><Steps current={3} /><div className="card"><p>국립수목원에서 공식 정보를 가져오는 중…</p></div></>);
 
@@ -289,41 +278,20 @@ export default function PlantDetail({ no }: { no: string }) {
       />
 
       <Steps current={4} />
-      <div className="card">
-        <h2>④ 나의 탐구 기록</h2>
-
-        <h3>{draft.aiCandidates?.length ? "AI가 말한 식물과 내가 관찰한 모습이 일치하나요?" : "공식 정보와 내가 관찰한 모습이 일치하나요?"}</h3>
-        <div className="chips">
-          {(["일치", "불일치", "모름"] as const).map((v) => (
-            <button key={v} className={`chip ${verified === v ? "on" : ""}`} onClick={() => setVerified(v)}>{v === "일치" ? "✅ 일치해요" : v === "불일치" ? "❌ 달라요" : "❓ 잘 모르겠어요"}</button>
-          ))}
-        </div>
-
-        <ObservationDrawings drawings={drawings} onChange={setDrawings} photo={draft.photo} />
-
-        <h3>관찰 질문 {exp ? "(AI 제안)" : "(기본)"}</h3>
-        {!exp && conn.ai && <p className="muted small">눈높이 설명을 열면 이 식물과 교과서 내용에 맞는 질문을 AI가 제안해요.</p>}
-        {questions.map((q, i) => (
-          <label className="field" key={i}>
-            <span>{i + 1}. {q}</span>
-            <textarea className="input" rows={2} value={answers[i] ?? ""} onChange={(e) => { const a = [...answers]; a[i] = e.target.value; setAnswers(a); }} placeholder="실제로 관찰한 것을 써요" />
-          </label>
-        ))}
-
-        <label className="field">
-          <span>새롭게 알게 된 점</span>
-          <textarea className="input" rows={3} value={newLearning} onChange={(e) => setNewLearning(e.target.value)} placeholder="공식 정보를 읽고 알게 된 것, 더 궁금한 것" />
-        </label>
-
-        {saveMsg && <div className="alert err">{saveMsg}</div>}
-        <button className="btn btn-primary" disabled={saving} onClick={save}>{saving ? "저장 중…" : "📒 나의 도감에 저장"}</button>
-        <p className="muted small" style={{ textAlign: "center", marginTop: 8 }}>관찰 그림과 교과서 연결 활동에 적은 내용도 함께 저장돼요.</p>
-      </div>
+      <RecordForm
+        matchQuestion={draft.aiCandidates?.length ? "AI가 말한 식물과 내가 관찰한 모습이 일치하나요?" : "공식 정보와 내가 관찰한 모습이 일치하나요?"}
+        questions={questions}
+        questionsLabel={`관찰 질문 ${exp ? "(AI 제안)" : "(기본)"}`}
+        questionsHint={!exp && conn.ai ? "눈높이 설명을 열면 이 식물과 교과서 내용에 맞는 질문을 AI가 제안해요." : undefined}
+        learningPlaceholder="공식 정보를 읽고 알게 된 것, 더 궁금한 것"
+        photo={draft.photo}
+        onSave={save}
+      />
     </>
   );
 }
 
-function Glossary({ items }: { items: { term: string; meaning: string }[] }) {
+export function Glossary({ items }: { items: { term: string; meaning: string }[] }) {
   return (
     <div className="glossary">
       <strong>📖 어려운 낱말 풀이</strong>

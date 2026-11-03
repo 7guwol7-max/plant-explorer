@@ -15,6 +15,7 @@ export default function SearchPage() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<{ message: string; needsSettings?: boolean } | null>(null);
   const [mock, setMock] = useState(false);
+  const [searched, setSearched] = useState(""); // 마지막으로 찾은 낱말
 
   async function run(e?: React.FormEvent) {
     e?.preventDefault();
@@ -27,6 +28,7 @@ export default function SearchPage() {
       if (!res.ok) throw await toApiError(res);
       const j = await res.json();
       setItems(j.items ?? []);
+      setSearched(word);
       setTotal(j.totalCount ?? 0);
       setMock(Boolean(j.mock));
     } catch (e2) {
@@ -51,7 +53,13 @@ export default function SearchPage() {
       {mock && <div className="alert warn">연습 모드예요. 연습용 자료 4종만 검색돼요.</div>}
       {err && <ErrorAlert {...err} />}
 
-      {items && items.length === 0 && <div className="card"><p>찾지 못했어요. 다른 이름이나 학명으로 다시 찾아 보세요.</p></div>}
+      {items && items.length === 0 && (
+        <div className="card">
+          <p style={{ marginTop: 0 }}>국립수목원 식물도감에서 &lsquo;{searched}&rsquo;을(를) 찾지 못했어요. 다른 이름이나 학명으로 다시 찾아 보세요.</p>
+          <p className="muted small">그래도 없으면 국립수목원 도감에 정식으로 등록되지 않은 식물일 수 있어요. AI에게 이 식물에 대해 물어볼 수 있어요.</p>
+          <Link href={`/unlisted?name=${encodeURIComponent(searched)}`} className="btn" onClick={() => clearDraft()}>🤖 AI에게 &lsquo;{searched}&rsquo; 알아보기</Link>
+        </div>
+      )}
 
       {items && items.length > 0 && (
         <div className="card">
