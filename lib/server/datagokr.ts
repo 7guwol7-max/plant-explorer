@@ -10,6 +10,7 @@ import { XMLParser } from "fast-xml-parser";
 import fs from "node:fs";
 import path from "node:path";
 import { isMock } from "./keys";
+import { SOURCE_NAME } from "../fields";
 
 const BASE = "https://apis.data.go.kr/1400119/PlantResource";
 const parser = new XMLParser({ ignoreAttributes: true, parseTagValue: false, trimValues: true });
@@ -20,6 +21,30 @@ export class DataGoKrError extends Error {
     this.name = "DataGoKrError";
   }
 }
+
+/**
+ * 공공데이터포털 결과코드 → 사용자 안내문
+ * (키를 처음 넣는 사람이 가장 많이 막히는 곳이라 '어디서 무엇을 확인할지'까지 적는다)
+ */
+export const DATA_CODE_MSG: Record<string, string> = {
+  "20": "이 키로 '국립수목원_식물자원 조회 서비스'를 쓸 권한이 없어요. 다른 API로 받은 키여도 이 서비스는 따로 활용신청을 해야 해요. 공공데이터포털 마이페이지에서 신청·승인 상태를 확인하세요.",
+  "22": "오늘 호출 한도(개발계정 하루 1,000건)를 넘었어요. 내일 다시 시도하거나 다른 키를 쓰세요.",
+  "30": "등록되지 않은 키예요. 마이페이지의 '일반 인증키'를 빠짐없이 복사했는지 확인하세요. 방금 신청했다면 키가 반영될 때까지 시간이 걸릴 수 있어요.",
+  "31": "키 사용 기간이 끝났어요. 공공데이터포털 마이페이지에서 활용 기간을 연장하세요.",
+  "32": "등록되지 않은 IP에서 호출했어요. 공공데이터포털 마이페이지의 활용신청 정보에서 IP 제한을 확인하세요.",
+  AUTH: "공공데이터포털이 키를 받아 주지 않았어요. 키를 다시 복사해 넣거나, 활용신청이 승인됐는지 확인하세요.",
+  "10": "요청 형식 오류예요. (서버 코드 점검 필요)",
+  "11": "필수 요청 값이 빠졌어요. (서버 코드 점검 필요)",
+  "12": "서비스 주소를 찾지 못했어요. (서버 코드 점검 필요)",
+  "05": "국립수목원 서버가 응답하지 않아요. 잠시 후 다시 시도하세요.",
+  NETWORK: "국립수목원 서버에 연결하지 못했어요. 인터넷 연결을 확인하세요.",
+  PARSE: "국립수목원 응답을 해석하지 못했어요. 잠시 후 다시 시도하세요.",
+};
+
+/** 사용자가 키 설정을 고쳐야 해결되는 오류 */
+export const KEY_ERROR_CODES = new Set(["20", "30", "31", "32", "AUTH"]);
+
+export const friendlyDataMessage = (e: DataGoKrError) => DATA_CODE_MSG[e.code] ?? e.message;
 
 /* ───────── 캐시: 검색어·도감번호 기준, 키와 무관 (공개 데이터) ───────── */
 type CacheEntry = { at: number; value: unknown };
@@ -43,7 +68,7 @@ const str = (v: unknown) => (v == null ? "" : String(v).trim());
 
 type Parsed = { code: string; body: Record<string, unknown> };
 
-function parseXml(text: string): Parsed {
+export function parseXml(text: string): Parsed {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const doc: any = parser.parse(text);
 
@@ -72,15 +97,31 @@ async function callXml(op: string, params: Record<string, string>, key: string):
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 12000);
   let text: string;
+  let status: number;
   try {
     const res = await fetch(url, { signal: ctrl.signal, cache: "no-store" });
+    status = res.status;
     text = await res.text();
   } catch {
     throw new DataGoKrError("NETWORK", "국립수목원 서버에 연결하지 못했어요");
   } finally {
     clearTimeout(timer);
   }
-  return parseXml(text);
+  return parseXml(guardNonXml(text, status));
+}
+
+/**
+ * 게이트웨이가 XML 대신 짧은 글(예: "Unauthorized")이나 빈 응답을 줄 때가 있다.
+ * HTTP 상태와 글귀로 결과코드를 추정해 같은 안내문으로 보낸다.
+ */
+export function guardNonXml(text: string, status: number): string {
+  if (text.trim().startsWith("<")) return text;
+  if (status === 401 || status === 403 || /unauthori[sz]ed|forbidden|not.?registered|invalid.?key/i.test(text)) {
+    throw new DataGoKrError("AUTH", text.slice(0, 120) || `HTTP ${status}`);
+  }
+  if (status === 429) throw new DataGoKrError("22", "호출 한도 초과");
+  if (status >= 500) throw new DataGoKrError("05", `HTTP ${status}`);
+  throw new DataGoKrError("PARSE", text.slice(0, 120) || `HTTP ${status}`);
 }
 
 /* ───────── 자료형 ───────── */
@@ -111,7 +152,7 @@ export type PlantDetail = PlantSummary & {
   mock?: boolean;
 };
 
-export const SOURCE = "국립수목원 국가생물종지식정보시스템";
+export const SOURCE = SOURCE_NAME;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapSummary(it: any): PlantSummary {
@@ -172,9 +213,13 @@ function mockDetail(no: string): PlantDetail | null {
 /* ───────── 공개 함수 ───────── */
 export type SearchResult = { items: PlantSummary[]; totalCount: number; mock?: boolean };
 
-export async function searchPlants(q: string, key: string): Promise<SearchResult> {
+/**
+ * opts.fresh: 캐시를 건너뛰고 실제로 호출한다.
+ * (설정 화면의 '연결 확인'은 키가 맞는지 보는 것이므로, 다른 사람이 채운 캐시로 성공을 알리면 안 된다)
+ */
+export async function searchPlants(q: string, key: string, opts: { fresh?: boolean } = {}): Promise<SearchResult> {
   const ck = `search:${q}`;
-  const hit = fromCache<SearchResult>(ck);
+  const hit = opts.fresh ? undefined : fromCache<SearchResult>(ck);
   if (hit) return hit;
 
   let result: SearchResult;
@@ -211,10 +256,17 @@ export async function getPlantDetail(no: string, key: string): Promise<PlantDeta
   return result;
 }
 
-/** 라우트 공통 오류 응답 */
+/**
+ * 라우트 공통 오류 응답
+ * 키 문제(BAD_DATA_KEY)는 401 로 보내 화면이 '키 설정 확인' 안내를 함께 띄우게 한다.
+ */
 export function dataErrorResponse(e: unknown) {
   if (e instanceof DataGoKrError) {
-    return Response.json({ error: "API_ERROR", code: e.code, message: e.message }, { status: 502 });
+    const bad = KEY_ERROR_CODES.has(e.code);
+    return Response.json(
+      { error: bad ? "BAD_DATA_KEY" : "API_ERROR", code: e.code, message: friendlyDataMessage(e) },
+      { status: bad ? 401 : 502 },
+    );
   }
   const msg = e instanceof Error ? e.message : "알 수 없는 오류";
   return Response.json({ error: "SERVER_ERROR", message: msg }, { status: 500 });

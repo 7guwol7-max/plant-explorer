@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
  * 0단계 — 국립수목원 API 명세 검증 스크립트
- * 사용: node scripts/check-api.mjs
- *  - .env.local 의 DATA_GO_KR_KEY(디코딩 키)로 실제 호출
+ * 사용: npm run check-api   또는   node scripts/check-api.mjs <일반인증키>
+ *  - .env.local 의 DATA_GO_KR_KEY(인코딩·디코딩 아무거나)로 실제 호출
  *  - 검색어별 totalCount 와 첫 결과를 출력
  *  - 첫 결과의 도감번호로 상세를 조회해 samples/real_*.xml 로 저장 (모의 모드 자료로 재사용 가능)
  */
@@ -16,9 +16,13 @@ if (fs.existsSync(envPath)) {
     if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, "");
   }
 }
-const KEY = process.env.DATA_GO_KR_KEY;
+// 인코딩 키(%2B 등)를 넣었어도 디코딩 키로 맞춘다 (앱의 lib/datakey.ts 와 같은 규칙)
+let KEY = (process.argv[2] || process.env.DATA_GO_KR_KEY || "").trim().replace(/\s+/g, "");
+if (/%[0-9A-Fa-f]{2}/.test(KEY)) {
+  try { KEY = decodeURIComponent(KEY); } catch {}
+}
 if (!KEY) {
-  console.error("DATA_GO_KR_KEY 가 없어요. .env.local 에 디코딩 키를 넣으세요.");
+  console.error("키가 없어요. .env.local 에 DATA_GO_KR_KEY=일반인증키 를 넣거나, node scripts/check-api.mjs <키> 로 실행하세요.");
   process.exit(1);
 }
 

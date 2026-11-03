@@ -1,30 +1,27 @@
 "use client";
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import { KEYS_EVENT, keyStatus } from "@/lib/client/keys";
+import { useConnection } from "@/lib/client/useConnection";
 
-/** 머리글의 연결 상태 점 — 초록: 두 키 모두 있음, 노랑: 하나만, 빨강: 없음 */
+/**
+ * 머리글의 연결 상태
+ * 초록 '연결됨': 도감+AI / 초록 '도감 연결': 도감만(AI 없이 이름으로 찾기) / 빨강 '키 필요' / 파랑 '연습 모드'
+ */
 export default function KeyStatus() {
-  const [s, setS] = useState({ hasData: false, hasGemini: false, ready: false });
+  const c = useConnection();
+  if (!c.ready) return <span className="status-link"><span className="dot" /></span>;
 
-  useEffect(() => {
-    const read = () => setS({ ...keyStatus(), ready: true });
-    read();
-    window.addEventListener(KEYS_EVENT, read);
-    window.addEventListener("storage", read);
-    return () => {
-      window.removeEventListener(KEYS_EVENT, read);
-      window.removeEventListener("storage", read);
-    };
-  }, []);
+  const [color, label] = c.mock
+    ? ["#4f8fd8", "연습 모드"]
+    : c.data && c.gemini
+      ? ["#2fbf71", "연결됨"]
+      : c.data
+        ? ["#2fbf71", "도감 연결"]
+        : ["#e05252", "키 필요"];
 
-  if (!s.ready) return <span className="status-link"><span className="dot" /></span>;
-  const both = s.hasData && s.hasGemini;
-  const none = !s.hasData && !s.hasGemini;
   return (
-    <Link href="/settings" className="status-link" title="설정">
-      <span className="dot" style={{ background: both ? "#2fbf71" : none ? "#e05252" : "#f1b22a" }} />
-      {both ? "연결됨" : none ? "키 필요" : "키 일부"}
+    <Link href="/settings" className="status-link" title="키 설정">
+      <span className="dot" style={{ background: color }} />
+      {label}
     </Link>
   );
 }
