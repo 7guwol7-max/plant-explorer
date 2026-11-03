@@ -93,3 +93,12 @@ describe("공공데이터포털 API 연결 정보 (dataApi)", () => {
     if (prev !== undefined) process.env.MOCK = prev;
   });
 });
+
+describe("GET /api/settings-file (📋 지금 설정 파일 복사)", () => {
+  it("저장소의 app-settings.json 내용을 그대로 돌려준다", async () => {
+    const { GET } = await import("@/app/api/settings-file/route");
+    const res = GET();
+    expect(res.headers.get("content-type")).toContain("application/json");
+    expect(JSON.parse(await res.text())).toEqual(raw);
+  });
+});

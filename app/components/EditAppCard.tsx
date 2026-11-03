@@ -13,6 +13,24 @@ type Repo = { owner: string; slug: string; ref: string; sha: string; message: st
 export default function EditAppCard() {
   const [repo, setRepo] = useState<Repo | null | undefined>(undefined);
   const [api, setApi] = useState<{ connected: boolean; service: string } | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
+  const [manual, setManual] = useState<string | null>(null); // 복사가 막힌 브라우저용
+
+  async function copySettings() {
+    setCopied(null);
+    setManual(null);
+    try {
+      const textData = await (await fetch("/api/settings-file", { cache: "no-store" })).text();
+      try {
+        await navigator.clipboard.writeText(textData);
+        setCopied(`✅ 복사했어요 (${textData.split("\n").length}줄). 클로드 채팅에 프롬프트를 붙이고, 그 아래에 이 내용을 붙여 넣어요.`);
+      } catch {
+        setManual(textData); // 직접 선택해서 복사
+      }
+    } catch {
+      setCopied("설정 파일을 불러오지 못했어요. 잠시 후 다시 눌러 주세요.");
+    }
+  }
 
   useEffect(() => {
     fetch("/api/config", { cache: "no-store" })
@@ -35,11 +53,19 @@ export default function EditAppCard() {
         (앱 이름·메뉴·장소·첫 화면 안내·새 화면·그림 도움말·교과서 연결 활동)
       </p>
       <ol className="steps-list">
-        <li><a className="link" href="https://claude.ai/new" target="_blank" rel="noreferrer">클로드 새 채팅</a> → 입력창 <strong>+</strong> → <strong>Add from GitHub</strong> → {repo ? <strong>{repo.slug}</strong> : "내 저장소"} → <code className="inline">app-settings.json</code> 하나만 체크</li>
-        <li>실습 프롬프트를 붙여 보내고, 클로드가 준 JSON 코드 블록의 <strong>Copy</strong></li>
+        <li>아래 <strong>📋 지금 설정 파일 복사</strong>를 눌러요</li>
+        <li><a className="link" href="https://claude.ai/new" target="_blank" rel="noreferrer">클로드 새 채팅</a>에 실습 프롬프트를 붙이고, 그 아래에 복사한 설정 파일을 붙여 보내요 → 클로드가 준 JSON 코드 블록의 <strong>Copy</strong></li>
         <li>아래 <strong>설정 파일 고치러 가기</strong> → 편집 칸 클릭 → <strong>Ctrl+A</strong> → <strong>Ctrl+V</strong> → <strong>Commit changes</strong></li>
         <li>1~2분 뒤 이 화면을 새로고침 → '지금 앱 버전'이 방금 저장한 내용으로 바뀌면 반영 끝!</li>
       </ol>
+      <button className="btn btn-ai" style={{ marginTop: 10 }} onClick={copySettings}>📋 지금 설정 파일 복사</button>
+      {copied && <div className="alert ok small" style={{ marginTop: 8, marginBottom: 0 }}>{copied}</div>}
+      {manual && (
+        <label className="field" style={{ marginTop: 8 }}>
+          <span>이 브라우저는 자동 복사가 막혀 있어요. 아래 칸을 눌러 전체 선택(Ctrl+A) 후 복사(Ctrl+C)하세요.</span>
+          <textarea className="input" rows={6} readOnly value={manual} onFocus={(e) => e.currentTarget.select()} />
+        </label>
+      )}
       {repo ? (
         <>
           <div className="row" style={{ marginTop: 10 }}>
