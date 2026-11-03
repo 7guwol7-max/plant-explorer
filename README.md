@@ -15,6 +15,12 @@
 - **🎯 해 볼 활동**: 교과서 연결마다 초록 활동 상자(번호 단계·쓰는 칸·적으면 ✅), 위에 '활동 n개 중 m개 적었어요' 진행 막대
 - AI(제미나이)는 **후보를 제안**하는 도구, 국립수목원 API는 **공식 정보를 확인**하는 도구, 교육과정 연결은 **정해진 규칙**(AI 아님)
 
+## 0. 연수용 시작 버전
+
+- [7guwol7-max/plant-explorer-starter](https://github.com/7guwol7-max/plant-explorer-starter): 이 저장소에서 미션 파일 4개(`lib/site.ts`, `lib/termText.ts`, `app/components/Steps.tsx`, `app/components/MissionProgress.tsx`)만 비운 연수용 버전. README 의 Deploy 버튼 한 번으로 참가자 GitHub 저장소 + Vercel 자동 배포가 만들어진다
+- 미션 파일은 다른 파일이 쓰는 이름·받는 값을 바꾸지 않으면 통째로 바꿔 넣어도 되게 작게 나눠 두었다. 이 저장소의 같은 파일이 '정답'
+- 진행표·프롬프트: 노션 '클로드 무료 계정 연수 진행표'
+
 ## 1. 다른 사람이 쓰는 방법 (키 연동 구조)
 
 앱 주소만 알려 주면 됩니다. 각자 아래 순서로 자기 키를 넣습니다. 앱 안의 **⚙️ 설정** 화면에 같은 안내와 바로가기 링크가 있습니다.
