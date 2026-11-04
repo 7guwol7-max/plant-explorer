@@ -19,7 +19,7 @@
 
 - [7guwol7-max/plant-explorer-starter](https://github.com/7guwol7-max/plant-explorer-starter): 이 저장소에서 미션 파일 4개(`lib/site.ts`, `lib/termText.ts`, `app/components/Steps.tsx`, `app/components/MissionProgress.tsx`)만 비운 연수용 버전. README 의 Deploy 버튼 한 번으로 참가자 GitHub 저장소 + Vercel 자동 배포가 만들어진다
 - 선생님이 고치는 곳은 **저장소 맨 위 `app-settings.json` 한 파일**: 앱 이름(app)·처음 학년(defaultGrade)·첫 화면 안내(notice)·아래 메뉴(menu)·장소 칩(places)·새 안내 화면(pages → 주소 `/p/이름`)·그림 도움말 글(terms)·교과서 연결 성취기준 더하기/활동 바꾸기(curriculum). 모양이 틀린 칸은 기본값으로 바뀌어 앱이 멈추지 않는다 (`lib/settings.ts`)
-- 연수 흐름: 클로드 웹(무료) → + → Add from GitHub → `app-settings.json` 첨부 → 실습 프롬프트 → JSON 전체 받기 → 선생님 모드 '✏️ 프롬프트로 앱 고치기' 카드의 **설정 파일 고치러 가기**(내 저장소 편집 화면) → 붙여 넣고 Commit → Vercel 자동 배포 → 카드의 '지금 앱 버전'으로 반영 확인 (`/api/config` 의 repo, Vercel 시스템 환경변수)
+- 연수 흐름: 선생님 모드 '✏️ 프롬프트로 앱 고치기' 카드의 **📋 지금 설정 파일 복사**(`/api/settings-file`) → 클로드 웹(무료) 새 채팅에 실습 프롬프트 + 설정 파일 붙여 보내기 → 클로드가 준 JSON 의 Copy → 카드의 **설정 파일 고치러 가기**(내 저장소 편집 화면) → 붙여 넣고 Commit → Vercel 자동 배포 → 카드의 '지금 앱 버전' 번호와 **🔍 이번에 바뀐 줄 보기**(그 커밋 화면)로 반영 확인 (`/api/config` 의 repo, Vercel 시스템 환경변수)
 - 이 저장소의 같은 파일이 '정답'
 - 진행표·프롬프트: 노션 '클로드 무료 계정 연수 진행표'
 

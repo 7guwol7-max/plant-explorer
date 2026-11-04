@@ -102,3 +102,29 @@ describe("GET /api/settings-file (📋 지금 설정 파일 복사)", () => {
     expect(JSON.parse(await res.text())).toEqual(raw);
   });
 });
+
+describe("GET /api/config 의 저장소 정보 (✏️ 카드의 '지금 앱 버전'·'이번에 바뀐 줄 보기')", () => {
+  const KEYS = ["VERCEL_GIT_REPO_OWNER", "VERCEL_GIT_REPO_SLUG", "VERCEL_GIT_COMMIT_REF", "VERCEL_GIT_COMMIT_SHA", "VERCEL_GIT_COMMIT_MESSAGE"] as const;
+  it("Vercel 이 넣어 준 저장소·커밋으로 짧은 번호와 커밋 화면용 전체 번호를 준다", async () => {
+    const saved = KEYS.map((k) => process.env[k]);
+    Object.assign(process.env, {
+      VERCEL_GIT_REPO_OWNER: "teacher",
+      VERCEL_GIT_REPO_SLUG: "my-plant-explorer",
+      VERCEL_GIT_COMMIT_REF: "main",
+      VERCEL_GIT_COMMIT_SHA: "d0910b4aaaabbbbccccddddeeeeffff000011112",
+      VERCEL_GIT_COMMIT_MESSAGE: "Update app-settings.json\n\n자세한 설명",
+    });
+    const { GET } = await import("@/app/api/config/route");
+    const j = await GET().json();
+    expect(j.repo).toMatchObject({ owner: "teacher", slug: "my-plant-explorer", ref: "main", sha: "d0910b4", message: "Update app-settings.json", file: "app-settings.json" });
+    expect(j.repo.commit).toBe("d0910b4aaaabbbbccccddddeeeeffff000011112");
+    KEYS.forEach((k, i) => (saved[i] === undefined ? delete process.env[k] : (process.env[k] = saved[i])));
+  });
+  it("Vercel 이 아닌 곳에서는 저장소 정보가 없다 (null)", async () => {
+    const saved = KEYS.map((k) => process.env[k]);
+    KEYS.forEach((k) => delete process.env[k]);
+    const { GET } = await import("@/app/api/config/route");
+    expect((await GET().json()).repo).toBeNull();
+    KEYS.forEach((k, i) => (saved[i] !== undefined ? (process.env[k] = saved[i]) : undefined));
+  });
+});

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 
-type Repo = { owner: string; slug: string; ref: string; sha: string; message: string; file: string };
+type Repo = { owner: string; slug: string; ref: string; sha: string; commit?: string; message: string; file: string };
 
 /**
  * ✏️ 프롬프트로 앱 고치기 — 선생님 모드 카드
@@ -9,6 +9,8 @@ type Repo = { owner: string; slug: string; ref: string; sha: string; message: st
  * Vercel 이 다시 배포한 결과를 바로 확인하게 돕는다.
  * - 이 앱을 만든 GitHub 저장소의 설정 파일 편집 화면으로 바로 가는 버튼
  * - '지금 앱 버전' (마지막으로 배포된 저장 내용) — 붙여 넣고 1~2분 뒤 새로고침하면 바뀐다
+ * - '🔍 이번에 바뀐 줄 보기' — 지금 버전의 GitHub 커밋 화면. 초록·빨강 줄이 없으면 바뀐 것 없이 저장된 것
+ *   (클로드 답 대신 원래 설정 파일을 다시 붙여 넣은 경우를 바로 알아챌 수 있게)
  */
 export default function EditAppCard() {
   const [repo, setRepo] = useState<Repo | null | undefined>(undefined);
@@ -56,7 +58,7 @@ export default function EditAppCard() {
         <li>아래 <strong>📋 지금 설정 파일 복사</strong>를 눌러요</li>
         <li><a className="link" href="https://claude.ai/new" target="_blank" rel="noreferrer">클로드 새 채팅</a>에 실습 프롬프트를 붙이고, 그 아래에 복사한 설정 파일을 붙여 보내요 → 클로드가 준 JSON 코드 블록의 <strong>Copy</strong></li>
         <li>아래 <strong>설정 파일 고치러 가기</strong> → 편집 칸 클릭 → <strong>Ctrl+A</strong> → <strong>Ctrl+V</strong> → <strong>Commit changes</strong></li>
-        <li>1~2분 뒤 이 화면을 새로고침 → '지금 앱 버전'이 방금 저장한 내용으로 바뀌면 반영 끝!</li>
+        <li>1~2분 뒤 이 화면을 새로고침 → '지금 앱 버전'의 <strong>번호</strong>가 바뀌고, <strong>🔍 이번에 바뀐 줄 보기</strong>에 초록·빨강 줄이 있으면 반영 끝!</li>
       </ol>
       <button className="btn btn-ai" style={{ marginTop: 10 }} onClick={copySettings}>📋 지금 설정 파일 복사</button>
       {copied && <div className="alert ok small" style={{ marginTop: 8, marginBottom: 0 }}>{copied}</div>}
@@ -74,6 +76,14 @@ export default function EditAppCard() {
           </div>
           <div className="app-version small">
             <strong>지금 앱 버전</strong> {repo.message || "(저장 메시지 없음)"} <span className="muted">· {repo.sha}</span>
+            {repo.sha && (
+              <>
+                <a className="btn btn-sm changed-lines" href={`${base}/commit/${repo.commit || repo.sha}`} target="_blank" rel="noreferrer">🔍 이번에 바뀐 줄 보기</a>
+                <span className="muted changed-help">
+                  초록(+)·빨강(−) 줄이 이번에 바뀐 곳이에요. 줄이 하나도 없으면 <strong>바뀐 것 없이 저장</strong>된 거예요 — 클로드 답의 <strong>Copy</strong>를 눌러 붙였는지 확인해요.
+                </span>
+              </>
+            )}
           </div>
         </>
       ) : repo === null ? (

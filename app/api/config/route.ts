@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
  * GET /api/config → { mock, sharedData, sharedAi, sharedAiProvider, repo, dataApi }
  * - 화면이 "이 사람은 키를 넣어야 하나?"를 판단할 때 쓴다. 키 값은 보내지 않는다.
  * - repo: 이 앱을 만든 GitHub 저장소와 지금 배포된 저장 내용 (Vercel 이 넣어 주는 시스템 환경변수)
- *   선생님 모드의 '✏️ 앱 고치기' 카드가 설정 파일 편집 주소와 '지금 앱 버전'을 보여 줄 때 쓴다.
+ *   선생님 모드의 '✏️ 앱 고치기' 카드가 설정 파일 편집 주소, '지금 앱 버전', '이번에 바뀐 줄 보기'(커밋 화면)를 보여 줄 때 쓴다.
  */
 export function GET() {
   const e = process.env;
@@ -18,6 +18,7 @@ export function GET() {
           slug: e.VERCEL_GIT_REPO_SLUG,
           ref: e.VERCEL_GIT_COMMIT_REF || "main",
           sha: (e.VERCEL_GIT_COMMIT_SHA || "").slice(0, 7),
+          commit: e.VERCEL_GIT_COMMIT_SHA || "",
           message: (e.VERCEL_GIT_COMMIT_MESSAGE || "").split("\n")[0].slice(0, 80),
           file: SETTINGS_FILE,
         }
