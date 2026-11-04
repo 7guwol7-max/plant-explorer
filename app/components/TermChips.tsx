@@ -3,8 +3,11 @@ import { useEffect, useState } from "react";
 import TermIcon from "./TermIcon";
 import { TERMS, TERM_GROUP_HINT, TERM_GROUP_TITLE } from "@/lib/terms";
 
-/** 설명이 아직 비어 있을 때 (lib/termText.ts 의 desc 가 "" 이거나 낱말이 빠졌을 때) */
-const NO_DESC = "아직 설명이 없어요. 그림을 보고 골라요.";
+/**
+ * 설명이 아직 비어 있을 때 (연수용 시작 버전처럼 desc 가 "" 이거나 낱말이 빠졌을 때)
+ * 진짜 설명처럼 보이지 않도록 회색 점선 칸으로 '비어 있음'을 드러낸다
+ */
+const NO_DESC = <span className="empty-desc">✏️ 설명 칸이 비어 있어요</span>;
 
 type Group = "leafShape" | "leafVein" | "stem";
 

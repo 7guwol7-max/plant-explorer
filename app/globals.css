@@ -428,3 +428,4 @@ details.field-block .muted-orig p { font-size: 13.5px; color: var(--muted); marg
 .edit-app { border: 2px solid var(--green); }
 .app-version { margin-top: 10px; padding: 8px 10px; border-radius: 10px; background: var(--green-soft); }
 .app-version.warn-box { background: var(--warn-soft); color: var(--warn); }
+.empty-desc { display: inline-block; padding: 2px 8px; border: 1px dashed #c9c9c9; border-radius: 8px; color: #8a8a8a; font-size: 13px; }
